@@ -1,12 +1,14 @@
 import { useCallback } from "react"
 import { useTranslation } from "@/i18n"
 import { useWorkspaceStore } from "@/stores/workspace-store"
+import { useProjectStore } from "@/stores/project-store"
 import { workspaceApi } from "@/lib/api"
 import { toast } from "@/lib/toast"
 
 export function useWorkspace() {
   const { t } = useTranslation()
   const { rootPath, setRootPath } = useWorkspaceStore()
+  const { scanWorkspace } = useProjectStore()
 
   const saveRootPath = useCallback(
     async (path: string) => {
@@ -16,6 +18,8 @@ export function useWorkspace() {
         toast.success(t("workspace.saveSuccess"), {
           description: t("workspace.saveSuccessDescription"),
         })
+        // Scan workspace after saving the root path
+        await scanWorkspace()
       } catch (error) {
         console.error("Failed to save root path:", error)
         toast.error(t("workspace.saveError"), {
@@ -23,7 +27,7 @@ export function useWorkspace() {
         })
       }
     },
-    [setRootPath, t]
+    [setRootPath, t, scanWorkspace]
   )
 
   const loadRootPath = useCallback(async () => {
