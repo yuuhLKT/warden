@@ -7,6 +7,8 @@ pub struct Settings {
     pub default_ide: String,
     pub workspace_path: String,
     pub theme: String,
+    pub default_suffix: String,
+    pub scan_depth: u8,
 }
 
 impl Default for Settings {
@@ -15,6 +17,8 @@ impl Default for Settings {
             default_ide: "zed".to_string(),
             workspace_path: String::new(),
             theme: "system".to_string(),
+            default_suffix: "test".to_string(),
+            scan_depth: 2,
         }
     }
 }
