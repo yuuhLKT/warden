@@ -1,12 +1,16 @@
 import { useTranslation } from "@/i18n"
+import { useSettingsStore } from "@/stores/settings-store"
+import { ideApi } from "@/lib/api"
+import { toast } from "@/lib/toast"
 import { ProjectService } from "@/types/project"
+import { IDE_CONFIGS } from "@/types/settings"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { StatusIndicator } from "@/components/common/status-indicator"
 import { StackIcon } from "./stack-icon"
-import { ExternalLink, Globe, Terminal, FolderOpen } from "lucide-react"
+import { Globe, FolderOpen, Code2 } from "lucide-react"
 
 interface ServiceRowProps {
   service: ProjectService
@@ -15,10 +19,18 @@ interface ServiceRowProps {
 
 export function ServiceRow({ service, onToggle }: ServiceRowProps) {
   const { t } = useTranslation()
+  const { defaultIDE } = useSettingsStore()
   const isRunning = service.status === "running"
 
-  const handleOpenUrl = () => {
-    window.open(`http://${service.url}`, "_blank")
+  const handleOpenIde = async () => {
+    try {
+      const ideConfig = IDE_CONFIGS[defaultIDE]
+      await ideApi.openInIde(service.path, ideConfig.command)
+    } catch (error) {
+      toast.error("Failed to open IDE", {
+        description: "Make sure the IDE is installed",
+      })
+    }
   }
 
   return (
@@ -45,24 +57,7 @@ export function ServiceRow({ service, onToggle }: ServiceRowProps) {
       <div className="flex shrink-0 items-center gap-1 lg:gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7 lg:size-8"
-              disabled={!isRunning}
-              onClick={handleOpenUrl}
-            >
-              <ExternalLink className="size-3.5 lg:size-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            {isRunning ? t("projects.openInBrowser") : t("projects.startServiceFirst")}
-          </TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="hidden size-7 sm:flex lg:size-8">
+            <Button variant="ghost" size="icon" className="size-7 lg:size-8">
               <FolderOpen className="size-3.5 lg:size-4" />
             </Button>
           </TooltipTrigger>
@@ -73,12 +68,17 @@ export function ServiceRow({ service, onToggle }: ServiceRowProps) {
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="hidden size-7 sm:flex lg:size-8">
-              <Terminal className="size-3.5 lg:size-4" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 lg:size-8"
+              onClick={handleOpenIde}
+            >
+              <Code2 className="size-3.5 lg:size-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <code className="text-xs">{service.command}</code>
+            {t("projects.openInIde", { ide: IDE_CONFIGS[defaultIDE].name })}
           </TooltipContent>
         </Tooltip>
 

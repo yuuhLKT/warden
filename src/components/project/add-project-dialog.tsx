@@ -6,6 +6,7 @@ import { useIsMobile } from "@/hooks/use-media-query"
 import { useWorkspace } from "@/hooks/use-workspace"
 import { useFolderPicker } from "@/hooks/use-folder-picker"
 import { useGit } from "@/hooks/use-git"
+import { useUrlSuffix } from "@/hooks/use-url-suffix"
 import type { Stack, ServiceType } from "@/types/project"
 import {
   Dialog,
@@ -66,6 +67,7 @@ export function AddProjectDialog({ trigger }: AddProjectDialogProps) {
   const { rootPath } = useWorkspace()
   const { selectFolder, isLoading: isSelectingFolder } = useFolderPicker()
   const { clone: cloneRepo, isCloning } = useGit()
+  const { urlSuffix } = useUrlSuffix()
   const {
     formData,
     errors,
@@ -134,7 +136,27 @@ export function AddProjectDialog({ trigger }: AddProjectDialogProps) {
 
     const success = await cloneRepo(githubData.gitUrl, githubData.folder)
     if (success) {
-      handleClose()
+      // Criar projeto no banco após clonar
+      try {
+        await addProject({
+          name: githubData.name,
+          folder: githubData.folder,
+          services: [
+            {
+              name: "main",
+              type: "backend",
+              stack: "node",
+              path: githubData.folder,
+              url: `${githubData.name.toLowerCase().replace(/\s+/g, "-")}.${urlSuffix}`,
+              port: 3000,
+              command: "npm run dev",
+            },
+          ],
+        })
+        handleClose()
+      } catch (error) {
+        console.error("Failed to create project after clone:", error)
+      }
     }
   }
 
@@ -303,11 +325,11 @@ export function AddProjectDialog({ trigger }: AddProjectDialogProps) {
             </Button>
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-6">
             {formData.services.map((service, index) => (
               <div key={index} className="bg-muted/30 space-y-5 rounded-lg border p-5">
-                <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="text-xs">
+                <div className="flex items-center justify-between border-b pb-3">
+                  <Badge variant="outline" className="px-2.5 py-0.5 text-xs font-medium">
                     {t("projects.serviceNumber", { number: index + 1 })}
                   </Badge>
                   {formData.services.length > 1 && (
@@ -318,19 +340,20 @@ export function AddProjectDialog({ trigger }: AddProjectDialogProps) {
                       className="text-destructive hover:bg-destructive/10 size-7"
                       onClick={() => removeService(index)}
                     >
-                      <Trash2 className="size-3" />
+                      <Trash2 className="size-4" />
                     </Button>
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm">{t("services.stack")}</Label>
+                {/* Linha 1: Stack, Nome, Tipo, Porta */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">{t("services.stack")}</Label>
                     <Select
                       value={service.stack}
                       onValueChange={(value) => updateServiceField(index, "stack", value as Stack)}
                     >
-                      <SelectTrigger className="h-10">
+                      <SelectTrigger className="h-10 w-full [&>span]:line-clamp-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -345,8 +368,8 @@ export function AddProjectDialog({ trigger }: AddProjectDialogProps) {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm">{t("services.serviceName")}</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">{t("services.serviceName")}</Label>
                     <Input
                       placeholder={t("services.serviceNamePlaceholder")}
                       value={service.name}
@@ -354,15 +377,15 @@ export function AddProjectDialog({ trigger }: AddProjectDialogProps) {
                       className="h-10"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm">{t("services.serviceType")}</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">{t("services.serviceType")}</Label>
                     <Select
                       value={service.type}
                       onValueChange={(value) =>
                         updateServiceField(index, "type", value as ServiceType)
                       }
                     >
-                      <SelectTrigger className="h-10">
+                      <SelectTrigger className="h-10 w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -375,8 +398,8 @@ export function AddProjectDialog({ trigger }: AddProjectDialogProps) {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm">{t("services.port")}</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">{t("services.port")}</Label>
                     <Input
                       type="text"
                       inputMode="numeric"
@@ -390,9 +413,10 @@ export function AddProjectDialog({ trigger }: AddProjectDialogProps) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-sm">{t("services.path")}</Label>
+                {/* Linha 2: Caminho e URL */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">{t("services.path")}</Label>
                     <div className="relative">
                       <Input
                         placeholder={t("services.pathPlaceholder")}
@@ -404,7 +428,7 @@ export function AddProjectDialog({ trigger }: AddProjectDialogProps) {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="absolute top-0 right-0 size-10"
+                        className="absolute top-0 right-0 h-10 w-10"
                         onClick={() => handleSelectServiceFolder(index)}
                         disabled={isSelectingFolder}
                       >
@@ -412,8 +436,8 @@ export function AddProjectDialog({ trigger }: AddProjectDialogProps) {
                       </Button>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm">{t("services.url")}</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">{t("services.url")}</Label>
                     <Input
                       placeholder={t("services.urlPlaceholder")}
                       value={service.url}
@@ -423,13 +447,14 @@ export function AddProjectDialog({ trigger }: AddProjectDialogProps) {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-sm">{t("services.command")}</Label>
+                {/* Linha 3: Comando */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">{t("services.command")}</Label>
                   <Input
                     placeholder={t("services.commandPlaceholder")}
                     value={service.command}
                     onChange={(e) => updateServiceField(index, "command", e.target.value)}
-                    className="h-10 font-mono"
+                    className="h-10 font-mono text-sm"
                   />
                 </div>
               </div>
