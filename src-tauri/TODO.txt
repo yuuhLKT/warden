@@ -1,0 +1,2 @@
+[X] TODO: Implement save JSON config
+[X] TODO: Implement load JSON config
