@@ -75,6 +75,7 @@
     "stopAllServices": "Stop all services",
     "removeProject": "Remove project",
     "openInBrowser": "Open in browser",
+    "openInIde": "Open in {{ide}}",
     "startServiceFirst": "Start the service first",
     "projectName": "Project Name",
     "projectNamePlaceholder": "My Awesome Project",
@@ -165,6 +166,21 @@
       "currentFolder": "Current folder",
       "defaultPath": "Default path",
       "noFolderSelected": "No folder selected"
+    },
+    "url": {
+      "title": "URL Suffix",
+      "description": "Configure the default suffix for local development URLs.",
+      "save": "Save",
+      "hint": "This suffix will be used for local development URLs (e.g., mysite.test)"
+    },
+    "scanDepth": {
+      "title": "Scan Depth",
+      "description": "How deep to scan for projects in monorepos and nested directories.",
+      "label": "Depth level",
+      "hint": "Higher values scan deeper but take longer. Recommended: 2-3",
+      "saveSuccess": "Scan depth saved",
+      "saveSuccessDescription": "The scan depth has been updated",
+      "saveError": "Failed to save scan depth"
     }
   },
   "onboarding": {
@@ -185,7 +201,7 @@
   },
   "validation": {
     "required": "This field is required",
-    "invalidUrl": "URL must end with .test (e.g., mysite.test)",
+    "invalidUrl": "URL must be a valid domain (e.g., mysite.test)",
     "invalidGithubUrl": "URL must be a valid GitHub repository",
     "portMin": "Port must be greater than 1024",
     "portMax": "Port must be less than 65535",
@@ -206,5 +222,10 @@
     "saveSuccess": "Default IDE saved",
     "saveSuccessDescription": "{{ide}} is now your default editor",
     "saveError": "Failed to save IDE"
+  },
+  "url": {
+    "saveSuccess": "Default URL suffix saved",
+    "saveSuccessDescription": "The default URL suffix has been updated",
+    "saveError": "Failed to save default URL suffix"
   }
 }

@@ -34,7 +34,7 @@ export const projectServiceSchema = z.object({
   url: z
     .string()
     .min(1, "URL is required")
-    .regex(/^[a-zA-Z0-9-]+\.test$/, "URL must end with .test (e.g., mysite.test)"),
+    .regex(/^[a-zA-Z0-9-]+\.[a-zA-Z0-9-]+$/, "URL must be a valid domain (e.g., mysite.test)"),
   port: z
     .number()
     .min(1024, "Port must be greater than 1024")
@@ -67,7 +67,7 @@ export const serviceFormSchema = z.object({
   url: z
     .string()
     .min(1, "URL is required")
-    .regex(/^[a-zA-Z0-9-]+\.test$/, "URL must end with .test (e.g., mysite.test)"),
+    .regex(/^[a-zA-Z0-9-]+\.[a-zA-Z0-9-]+$/, "URL must be a valid domain (e.g., mysite.test)"),
   port: z
     .number()
     .min(1024, "Port must be greater than 1024")

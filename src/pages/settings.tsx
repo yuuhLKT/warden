@@ -1,13 +1,17 @@
+import { useState } from "react"
 import { useTranslation } from "@/i18n"
 import { useSettingsStore } from "@/stores/settings-store"
 import { useFolderPicker } from "@/hooks/use-folder-picker"
 import { useIDE } from "@/hooks/use-ide"
 import { useWorkspace } from "@/hooks/use-workspace"
+import { useUrlSuffix } from "@/hooks/use-url-suffix"
+import { useScanDepth } from "@/hooks/use-scan-depth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { IDE_CONFIGS, type IDE, type Theme } from "@/types/settings"
-import { Settings, Monitor, FolderOpen, Check } from "lucide-react"
+import { Settings, Monitor, FolderOpen, Check, Globe, Layers } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function SettingsPage() {
@@ -16,6 +20,10 @@ export function SettingsPage() {
   const { defaultIDE, saveIDE } = useIDE()
   const { rootPath, saveRootPath } = useWorkspace()
   const { selectFolder, isLoading } = useFolderPicker()
+  const { urlSuffix, saveSuffix } = useUrlSuffix()
+  const { scanDepth, saveDepth } = useScanDepth()
+  const [suffixInput, setSuffixInput] = useState(urlSuffix)
+  const [depthInput, setDepthInput] = useState(scanDepth.toString())
 
   const handleThemeChange = (newTheme: Theme) => {
     setTheme(newTheme)
@@ -30,6 +38,17 @@ export function SettingsPage() {
 
   const handleSelectIDE = async (ide: IDE) => {
     await saveIDE(ide)
+  }
+
+  const handleSaveSuffix = async () => {
+    await saveSuffix(suffixInput)
+  }
+
+  const handleSaveDepth = async () => {
+    const depth = parseInt(depthInput, 10)
+    if (depth >= 1 && depth <= 10) {
+      await saveDepth(depth)
+    }
   }
 
   return (
@@ -123,6 +142,61 @@ export function SettingsPage() {
                 {t("settings.workspace.changeFolder")}
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="size-5" />
+              {t("settings.url.title")}
+            </CardTitle>
+            <CardDescription>{t("settings.url.description")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1">
+                <span className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2 text-sm">
+                  .
+                </span>
+                <Input
+                  value={suffixInput}
+                  onChange={(e) => setSuffixInput(e.target.value)}
+                  className="pl-5"
+                  placeholder="test"
+                />
+              </div>
+              <Button variant="outline" onClick={handleSaveSuffix}>
+                {t("settings.url.save")}
+              </Button>
+            </div>
+            <p className="text-muted-foreground mt-2 text-xs">{t("settings.url.hint")}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Layers className="size-5" />
+              {t("settings.scanDepth.title")}
+            </CardTitle>
+            <CardDescription>{t("settings.scanDepth.description")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <Input
+                type="number"
+                min={1}
+                max={10}
+                value={depthInput}
+                onChange={(e) => setDepthInput(e.target.value)}
+                className="w-20"
+              />
+              <Button variant="outline" onClick={handleSaveDepth}>
+                {t("settings.url.save")}
+              </Button>
+            </div>
+            <p className="text-muted-foreground mt-2 text-xs">{t("settings.scanDepth.hint")}</p>
           </CardContent>
         </Card>
       </div>
