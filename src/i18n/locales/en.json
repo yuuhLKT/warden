@@ -1,0 +1,210 @@
+{
+  "common": {
+    "appName": "Warden",
+    "version": "v0.1.0",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "add": "Add",
+    "remove": "Remove",
+    "close": "Close",
+    "open": "Open",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish",
+    "settings": "Settings",
+    "general": "General",
+    "actions": "Actions",
+    "or": "or",
+    "start": "Start",
+    "stop": "Stop",
+    "tryAgain": "Please try again",
+    "selectFolder": "Select folder"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "monitor": "Monitor",
+    "settings": "Settings",
+    "projects": "Projects",
+    "menuTitle": "Navigation Menu"
+  },
+  "sidebar": {
+    "expand": "Expand sidebar",
+    "collapse": "Collapse sidebar"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "stats": {
+      "projects": "Projects",
+      "totalProjects": "Total projects",
+      "activeServices": "Active Services",
+      "ofServices": "of {{total}} services",
+      "uptime": "Uptime",
+      "last24h": "Last 24 hours",
+      "comparedToYesterday": "{{value}}% compared to yesterday",
+      "activeUrls": "Active URLs",
+      "testDomains": ".test domains"
+    }
+  },
+  "monitor": {
+    "comingSoonDescription": "Service monitoring coming soon. You'll be able to track CPU, memory, and logs here."
+  },
+  "projects": {
+    "title": "Projects",
+    "newProject": "New Project",
+    "addProject": "New Project",
+    "cloneFromGithub": "Clone from GitHub",
+    "noProjects": "No projects yet",
+    "noProjectsDescription": "Add your first project to start managing your local servers.",
+    "addFirstProject": "Add Project",
+    "searchProjects": "Search projects...",
+    "service": "service",
+    "services": "services",
+    "active": "active",
+    "actives": "active",
+    "startAll": "Start all",
+    "stopAll": "Stop all",
+    "startAllServices": "Start all services",
+    "stopAllServices": "Stop all services",
+    "removeProject": "Remove project",
+    "openInBrowser": "Open in browser",
+    "startServiceFirst": "Start the service first",
+    "projectName": "Project Name",
+    "projectNamePlaceholder": "My Awesome Project",
+    "selectFolder": "Select folder",
+    "createProject": "Create Project",
+    "cloneProject": "Clone Project",
+    "gitUrl": "Repository URL",
+    "gitUrlPlaceholder": "https://github.com/user/repo.git",
+    "clonePath": "Clone to",
+    "projectType": "Project Type",
+    "newProjectDescription": "Create a new project",
+    "cloneFromGithubDescription": "Clone from GitHub",
+    "defaultClonePathPlaceholder": "/home/user/projects",
+    "defaultFolderPlaceholder": "/home/user/projects/my-project",
+    "serviceNumber": "Service {{number}}",
+    "dialog": {
+      "chooseDescription": "Choose how you want to add a new project",
+      "newProjectDescription": "Create a new project with custom services",
+      "githubDescription": "Clone a repository from GitHub"
+    },
+    "serviceTypes": {
+      "frontend": "Frontend",
+      "backend": "Backend"
+    },
+    "stacks": {
+      "react": "React",
+      "next": "Next.js",
+      "vue": "Vue",
+      "angular": "Angular",
+      "svelte": "Svelte",
+      "node": "Node.js",
+      "express": "Express",
+      "nestjs": "NestJS",
+      "laravel": "Laravel",
+      "php": "PHP",
+      "django": "Django",
+      "flask": "Flask",
+      "rails": "Ruby on Rails",
+      "go": "Go",
+      "rust": "Rust",
+      "other": "Other"
+    }
+  },
+  "services": {
+    "title": "Services",
+    "addService": "Add Service",
+    "serviceName": "Name",
+    "serviceNamePlaceholder": "Frontend",
+    "serviceType": "Type",
+    "stack": "Stack",
+    "path": "Path",
+    "pathPlaceholder": "/home/user/projects/my-project/frontend",
+    "url": "URL",
+    "urlPlaceholder": "mysite.test",
+    "port": "Port",
+    "portPlaceholder": "3000",
+    "command": "Command",
+    "commandPlaceholder": "npm run dev",
+    "status": {
+      "running": "Running",
+      "stopped": "Stopped",
+      "error": "Error"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Manage your application preferences.",
+    "general": {
+      "title": "General",
+      "description": "Configure general application settings.",
+      "theme": "Theme",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "themeSystem": "System",
+      "language": "Language"
+    },
+    "ide": {
+      "title": "IDE",
+      "description": "Choose your default code editor.",
+      "defaultIde": "Default IDE",
+      "openIn": "Open in {{ide}}"
+    },
+    "workspace": {
+      "title": "Workspace",
+      "description": "Configure your default projects folder.",
+      "rootFolder": "Projects folder",
+      "changeFolder": "Change folder",
+      "currentFolder": "Current folder",
+      "defaultPath": "Default path",
+      "noFolderSelected": "No folder selected"
+    }
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Welcome to Warden",
+      "description": "Your local development environment manager. Let's get you set up."
+    },
+    "workspace": {
+      "title": "Select your projects folder",
+      "description": "Choose the folder where your projects are located. Warden will scan this folder to find your projects.",
+      "selectFolder": "Select Folder",
+      "selectedFolder": "Selected folder"
+    },
+    "complete": {
+      "title": "You're all set!",
+      "description": "Warden is ready to manage your local development environment."
+    }
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalidUrl": "URL must end with .test (e.g., mysite.test)",
+    "invalidGithubUrl": "URL must be a valid GitHub repository",
+    "portMin": "Port must be greater than 1024",
+    "portMax": "Port must be less than 65535",
+    "minServices": "Add at least one service"
+  },
+  "git": {
+    "cloneSuccess": "Repository cloned",
+    "cloneSuccessDescription": "The repository has been cloned successfully",
+    "cloneError": "Failed to clone repository",
+    "cloneErrorDescription": "Please check the URL and try again"
+  },
+  "workspace": {
+    "saveSuccess": "Workspace folder saved",
+    "saveSuccessDescription": "Your projects folder has been updated",
+    "saveError": "Failed to save workspace folder"
+  },
+  "ide": {
+    "saveSuccess": "Default IDE saved",
+    "saveSuccessDescription": "{{ide}} is now your default editor",
+    "saveError": "Failed to save IDE"
+  }
+}
