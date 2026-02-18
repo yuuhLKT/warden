@@ -1,65 +1,39 @@
 import { create } from "zustand"
 import {
   projectApi,
-  CreateProjectRequest,
-  CreateServiceRequest,
-  DiscoveredProject,
-  ProjectWithServices,
-  ServiceResponse,
+  type CreateProjectRequest,
+  type CreateServiceRequest,
+  type ProjectWithServices,
+  type ServiceRow,
   scanDepthApi,
   urlApi,
 } from "@/lib/api"
 import { workspaceApi } from "@/lib/api"
+import { useSettingsStore } from "@/stores/settings-store"
 import type {
   Project,
   ProjectService,
   ProjectStatus,
-  ServiceType,
   DetectedProject as DetectedProjectType,
 } from "@/types/project"
-import { ProjectFormValues } from "@/schemas/project"
+import type { ProjectFormValues } from "@/schemas/project"
+import {
+  calculateProjectCategory,
+  validateStack,
+  categoryToServiceType,
+  toggleServiceStatus,
+  updateServiceStatus,
+  updateAllServicesStatus,
+  updateServiceInProject,
+  countTotalRunningServices,
+} from "@/stores/utils"
 
-function calculateCategory(services: { type: "frontend" | "backend" }[]): Project["category"] {
-  const hasFrontend = services.some((s) => s.type === "frontend")
-  const hasBackend = services.some((s) => s.type === "backend")
-
-  if (hasFrontend && hasBackend) return "fullstack"
-  if (hasFrontend) return "frontend"
-  return "backend"
-}
-
-function mapServiceResponseToProjectService(service: ServiceResponse): ProjectService {
-  const validStack = [
-    "react",
-    "next",
-    "vue",
-    "angular",
-    "svelte",
-    "node",
-    "express",
-    "nestjs",
-    "laravel",
-    "php",
-    "django",
-    "flask",
-    "rails",
-    "go",
-    "rust",
-    "other",
-  ] as const
-  type StackType = (typeof validStack)[number]
-
-  const stack: StackType = validStack.includes(service.stack as StackType)
-    ? (service.stack as StackType)
-    : "other"
-
-  const serviceType: ServiceType = service.serviceType === "frontend" ? "frontend" : "backend"
-
+function mapServiceRowToProjectService(service: ServiceRow): ProjectService {
   return {
     id: service.id,
     name: service.name,
-    type: serviceType,
-    stack: stack,
+    type: service.serviceType === "frontend" ? "frontend" : "backend",
+    stack: validateStack(service.stack),
     path: service.path,
     url: service.url,
     port: service.port,
@@ -69,12 +43,12 @@ function mapServiceResponseToProjectService(service: ServiceResponse): ProjectSe
 }
 
 function mapProjectWithServicesToProject(projectWithServices: ProjectWithServices): Project {
-  const services = projectWithServices.services.map(mapServiceResponseToProjectService)
+  const services = projectWithServices.services.map(mapServiceRowToProjectService)
   return {
     id: projectWithServices.id,
     name: projectWithServices.name,
     folder: projectWithServices.folder,
-    category: calculateCategory(services),
+    category: calculateProjectCategory(services),
     services,
     hasDocker: false,
     detectedAt: new Date(projectWithServices.createdAt),
@@ -83,104 +57,24 @@ function mapProjectWithServicesToProject(projectWithServices: ProjectWithService
   }
 }
 
-function mapDiscoveredToProject(discovered: DiscoveredProject, urlSuffix: string): Project {
-  const validStack = [
-    "react",
-    "next",
-    "vue",
-    "angular",
-    "svelte",
-    "node",
-    "express",
-    "nestjs",
-    "laravel",
-    "php",
-    "django",
-    "flask",
-    "rails",
-    "go",
-    "rust",
-    "other",
-  ] as const
-  type StackType = (typeof validStack)[number]
-
-  const stack: StackType = validStack.includes(discovered.stack as StackType)
-    ? (discovered.stack as StackType)
-    : "other"
-
-  return {
-    id: crypto.randomUUID(),
-    name: discovered.name,
-    folder: discovered.folder,
-    category: "backend",
-    services: [
-      {
-        id: crypto.randomUUID(),
-        name: "main",
-        type: "backend",
-        stack: stack,
-        path: discovered.folder,
-        url: `${discovered.name.toLowerCase().replace(/\s+/g, "-")}.${urlSuffix}`,
-        port: discovered.port,
-        command: "npm run dev",
-        status: "stopped",
-      },
-    ],
-    hasDocker: false,
-    detectedAt: new Date(),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }
-}
-
-// Map DetectedProject (from advanced scan) to Project
 function mapDetectedProjectToProject(detected: DetectedProjectType, urlSuffix: string): Project {
-  const validStack = [
-    "react",
-    "next",
-    "vue",
-    "angular",
-    "svelte",
-    "node",
-    "express",
-    "nestjs",
-    "laravel",
-    "php",
-    "django",
-    "flask",
-    "rails",
-    "go",
-    "rust",
-    "other",
-  ] as const
-  type StackType = (typeof validStack)[number]
-
-  const services: ProjectService[] = detected.services.map((s) => {
-    const stack: StackType = validStack.includes(s.stack as StackType)
-      ? (s.stack as StackType)
-      : "other"
-
-    const serviceType: ServiceType =
-      s.category === "frontend" || s.category === "mobile" ? "frontend" : "backend"
-
-    return {
-      id: crypto.randomUUID(),
-      name: s.name,
-      type: serviceType,
-      stack: stack,
-      path: s.path,
-      url: `${detected.name.toLowerCase().replace(/\s+/g, "-")}.${urlSuffix}`,
-      port: s.port ?? 3000,
-      command: s.devCommand ?? "npm run dev",
-      status: "stopped" as ProjectStatus,
-    }
-  })
+  const services: ProjectService[] = detected.services.map((s) => ({
+    id: crypto.randomUUID(),
+    name: s.name,
+    type: categoryToServiceType(s.category),
+    stack: validateStack(s.stack),
+    path: s.path,
+    url: `${detected.name.toLowerCase().replace(/\s+/g, "-")}.${urlSuffix}`,
+    port: s.port ?? 3000,
+    command: s.devCommand ?? "npm run dev",
+    status: "stopped" as ProjectStatus,
+  }))
 
   return {
     id: crypto.randomUUID(),
     name: detected.name,
     folder: detected.path,
-    category: calculateCategory(services),
+    category: calculateProjectCategory(services),
     services,
     hasDocker: detected.hasDocker,
     detectedAt: new Date(),
@@ -197,11 +91,16 @@ interface ProjectState {
   loadProjects: () => Promise<void>
   scanWorkspace: () => Promise<void>
   addProject: (data: ProjectFormValues) => Promise<void>
-  addDiscoveredProject: (discovered: DiscoveredProject) => Promise<void>
   removeProject: (id: string) => Promise<void>
+  updateProject: (id: string, data: { name: string; folder: string }) => Promise<void>
   selectProject: (id: string | null) => void
 
   toggleService: (projectId: string, serviceId: string) => void
+  updateService: (
+    projectId: string,
+    serviceId: string,
+    updates: Partial<Omit<ProjectService, "id" | "status">>
+  ) => Promise<void>
   updateServiceStatus: (projectId: string, serviceId: string, status: ProjectStatus) => void
   startAllServices: (projectId: string) => void
   stopAllServices: (projectId: string) => void
@@ -224,7 +123,6 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
       const projects = projectsWithServices.map(mapProjectWithServicesToProject)
       set({ projects, isLoading: false })
     } catch (error) {
-      console.error("Failed to load projects:", error)
       set({ isLoading: false })
     }
   },
@@ -233,21 +131,18 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     try {
       const rootPath = await workspaceApi.getRootPath()
       if (!rootPath) {
-        console.log("No workspace root path configured")
         return
       }
 
       const scanDepth = await scanDepthApi.getScanDepth()
-      const urlSuffix = await urlApi.getSuffix()
-      console.log("Scanning workspace with advanced detection:", rootPath, "depth:", scanDepth)
+      const urlSuffix =
+        useSettingsStore.getState().urlSuffix || (await urlApi.getSuffix()) || "test"
 
       const detectedProjects = await projectApi.scanWorkspaceServices(rootPath, scanDepth)
-      console.log("Detected projects:", detectedProjects)
 
       for (const detected of detectedProjects) {
         const exists = await projectApi.projectExistsByFolder(detected.path)
         if (exists) {
-          console.log("Project already exists:", detected.name)
           continue
         }
 
@@ -277,15 +172,9 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
           set((currentState) => ({
             projects: [...currentState.projects, project],
           }))
-
-          console.log("Project saved with", project.services.length, "services:", project.name)
-        } catch (error) {
-          console.error("Failed to save detected project:", detected.name, error)
-        }
+        } catch {}
       }
-    } catch (error) {
-      console.error("Failed to scan workspace:", error)
-    }
+    } catch {}
   },
 
   addProject: async (data) => {
@@ -316,53 +205,22 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
         id: apiProject.id,
         name: apiProject.name,
         folder: apiProject.folder,
-        category: calculateCategory(data.services),
+        category: calculateProjectCategory(data.services),
         services: data.services.map((service, index) => ({
           ...service,
           id: servicesRequest[index].id,
           status: "stopped" as ProjectStatus,
         })),
         hasDocker: false,
-        detectedAt: new Date(apiProject.created_at),
-        createdAt: new Date(apiProject.created_at),
-        updatedAt: new Date(apiProject.updated_at),
+        detectedAt: new Date(apiProject.createdAt),
+        createdAt: new Date(apiProject.createdAt),
+        updatedAt: new Date(apiProject.updatedAt),
       }
 
       set((state) => ({
         projects: [...state.projects, newProject],
       }))
     } catch (error) {
-      console.error("Failed to create project:", error)
-      throw error
-    }
-  },
-
-  addDiscoveredProject: async (discovered) => {
-    const urlSuffix = await urlApi.getSuffix()
-    const project = mapDiscoveredToProject(discovered, urlSuffix || "test")
-    const projectRequest: CreateProjectRequest = {
-      id: project.id,
-      name: project.name,
-      folder: project.folder,
-    }
-    const servicesRequest: CreateServiceRequest[] = project.services.map((s) => ({
-      id: s.id,
-      project_id: project.id,
-      name: s.name,
-      service_type: s.type,
-      stack: s.stack,
-      path: s.path,
-      url: s.url,
-      port: s.port,
-      command: s.command,
-    }))
-    try {
-      await projectApi.createProject(projectRequest, servicesRequest)
-      set((state) => ({
-        projects: [...state.projects, project],
-      }))
-    } catch (error) {
-      console.error("Failed to add discovered project:", error)
       throw error
     }
   },
@@ -375,7 +233,38 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
         selectedProjectId: state.selectedProjectId === id ? null : state.selectedProjectId,
       }))
     } catch (error) {
-      console.error("Failed to delete project:", error)
+      throw error
+    }
+  },
+
+  updateProject: async (id, data) => {
+    try {
+      await projectApi.updateProject(id, data.name, data.folder)
+      set((state) => ({
+        projects: state.projects.map((p) =>
+          p.id === id ? { ...p, name: data.name, folder: data.folder, updatedAt: new Date() } : p
+        ),
+      }))
+    } catch (error) {
+      throw error
+    }
+  },
+
+  updateService: async (projectId, serviceId, updates) => {
+    try {
+      await projectApi.updateService(serviceId, {
+        name: updates.name,
+        serviceType: updates.type,
+        stack: updates.stack,
+        path: updates.path,
+        url: updates.url,
+        port: updates.port,
+        command: updates.command,
+      })
+      set((state) => ({
+        projects: updateServiceInProject(state.projects, projectId, serviceId, updates),
+      }))
+    } catch (error) {
       throw error
     }
   },
@@ -386,69 +275,25 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
   toggleService: (projectId, serviceId) => {
     set((state) => ({
-      projects: state.projects.map((p) => {
-        if (p.id !== projectId) return p
-
-        return {
-          ...p,
-          services: p.services.map((s) => {
-            if (s.id !== serviceId) return s
-            return {
-              ...s,
-              status: s.status === "running" ? "stopped" : "running",
-            }
-          }),
-          updatedAt: new Date(),
-        }
-      }),
+      projects: toggleServiceStatus(state.projects, projectId, serviceId),
     }))
   },
 
   updateServiceStatus: (projectId, serviceId, status) => {
     set((state) => ({
-      projects: state.projects.map((p) => {
-        if (p.id !== projectId) return p
-
-        return {
-          ...p,
-          services: p.services.map((s) => (s.id === serviceId ? { ...s, status } : s)),
-          updatedAt: new Date(),
-        }
-      }),
+      projects: updateServiceStatus(state.projects, projectId, serviceId, status),
     }))
   },
 
   startAllServices: (projectId) => {
     set((state) => ({
-      projects: state.projects.map((p) => {
-        if (p.id !== projectId) return p
-
-        return {
-          ...p,
-          services: p.services.map((s) => ({
-            ...s,
-            status: "running" as ProjectStatus,
-          })),
-          updatedAt: new Date(),
-        }
-      }),
+      projects: updateAllServicesStatus(state.projects, projectId, "running"),
     }))
   },
 
   stopAllServices: (projectId) => {
     set((state) => ({
-      projects: state.projects.map((p) => {
-        if (p.id !== projectId) return p
-
-        return {
-          ...p,
-          services: p.services.map((s) => ({
-            ...s,
-            status: "stopped" as ProjectStatus,
-          })),
-          updatedAt: new Date(),
-        }
-      }),
+      projects: updateAllServicesStatus(state.projects, projectId, "stopped"),
     }))
   },
 
@@ -458,10 +303,6 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
   },
 
   getRunningServicesCount: () => {
-    const state = get()
-    return state.projects.reduce(
-      (acc, p) => acc + p.services.filter((s) => s.status === "running").length,
-      0
-    )
+    return countTotalRunningServices(get().projects)
   },
 }))

@@ -1,13 +1,15 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
+import type { Page } from "@/lib/constants"
 
-export type Page = "dashboard" | "monitor" | "settings"
+export type { Page }
 
 interface UIState {
   sidebarOpen: boolean
   sidebarCollapsed: boolean
   activeModal: string | null
   currentPage: Page
+  selectedProjectId: string | null
 
   setSidebarOpen: (open: boolean) => void
   toggleSidebar: () => void
@@ -16,6 +18,7 @@ interface UIState {
   openModal: (id: string) => void
   closeModal: () => void
   navigateTo: (page: Page) => void
+  navigateToProject: (projectId: string) => void
 }
 
 export const useUIStore = create<UIState>()(
@@ -25,6 +28,7 @@ export const useUIStore = create<UIState>()(
       sidebarCollapsed: false,
       activeModal: null,
       currentPage: "dashboard",
+      selectedProjectId: null,
 
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
@@ -32,7 +36,9 @@ export const useUIStore = create<UIState>()(
       toggleSidebarCollapsed: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       openModal: (id) => set({ activeModal: id }),
       closeModal: () => set({ activeModal: null }),
-      navigateTo: (page) => set({ currentPage: page }),
+      navigateTo: (page) => set({ currentPage: page, selectedProjectId: null }),
+      navigateToProject: (projectId) =>
+        set({ currentPage: "project", selectedProjectId: projectId }),
     }),
     {
       name: "warden-ui",
