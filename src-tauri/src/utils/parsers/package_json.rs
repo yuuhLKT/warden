@@ -3,8 +3,20 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use std::sync::LazyLock;
 
-/// Parsed package.json structure
+static SCRIPT_PORT_FLAG_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"-p\s+(\d+)").unwrap());
+
+static SCRIPT_PORT_EQUALS_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"--port[=\s]+(\d+)").unwrap());
+
+static SCRIPT_PORT_ENV_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"PORT=(\d+)").unwrap());
+
+static SCRIPT_PORT_COLON_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r":(\d{4,5})").unwrap());
+
 #[derive(Debug, Clone, Deserialize, Default)]
 #[serde(default)]
 pub struct PackageJson {
@@ -22,7 +34,6 @@ pub struct PackageJson {
     pub package_manager: Option<String>,
 }
 
-/// Workspaces configuration (can be array or object)
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
 pub enum WorkspacesConfig {
@@ -40,7 +51,6 @@ impl WorkspacesConfig {
 }
 
 impl PackageJson {
-    /// Parse package.json from a path
     pub fn parse(path: &Path) -> Option<Self> {
         let package_json_path = if path.is_file() {
             path.to_path_buf()
@@ -52,7 +62,6 @@ impl PackageJson {
         serde_json::from_str(&content).ok()
     }
 
-    /// Check if a dependency exists (in any dependency type)
     pub fn has_dependency(&self, name: &str) -> bool {
         self.dependencies.contains_key(name)
             || self.dev_dependencies.contains_key(name)
@@ -71,7 +80,6 @@ impl PackageJson {
         all_deps.iter().any(|dep| dep.contains(pattern))
     }
 
-    /// Get the dev command
     pub fn get_dev_command(&self) -> Option<String> {
         self.scripts
             .get("dev")
@@ -80,12 +88,10 @@ impl PackageJson {
             .cloned()
     }
 
-    /// Get the build command
     pub fn get_build_command(&self) -> Option<String> {
         self.scripts.get("build").cloned()
     }
 
-    /// Get the start command
     pub fn get_start_command(&self) -> Option<String> {
         self.scripts
             .get("start")
@@ -93,16 +99,14 @@ impl PackageJson {
             .cloned()
     }
 
-    /// Extract port from scripts (looks for -p, --port flags)
     pub fn extract_port_from_scripts(&self) -> Option<u16> {
         let port_patterns = [
-            Regex::new(r"-p\s+(\d+)").ok()?,
-            Regex::new(r"--port[=\s]+(\d+)").ok()?,
-            Regex::new(r"PORT=(\d+)").ok()?,
-            Regex::new(r":(\d{4,5})").ok()?,
+            &*SCRIPT_PORT_FLAG_REGEX,
+            &*SCRIPT_PORT_EQUALS_REGEX,
+            &*SCRIPT_PORT_ENV_REGEX,
+            &*SCRIPT_PORT_COLON_REGEX,
         ];
 
-        // Check dev script first, then start
         let scripts_to_check = ["dev", "start:dev", "start", "serve"];
 
         for script_name in scripts_to_check {
@@ -124,12 +128,10 @@ impl PackageJson {
         None
     }
 
-    /// Check if this is a monorepo root
     pub fn is_monorepo(&self) -> bool {
         self.workspaces.is_some()
     }
 
-    /// Get workspace patterns
     pub fn get_workspace_patterns(&self) -> Vec<String> {
         self.workspaces
             .as_ref()
@@ -139,13 +141,11 @@ impl PackageJson {
 
     #[allow(dead_code)]
     pub fn get_declared_package_manager(&self) -> Option<String> {
-        self.package_manager.as_ref().map(|pm| {
-            // Format is usually "pnpm@9.6.0" or "yarn@4.0.0"
-            pm.split('@').next().unwrap_or(pm).to_string()
-        })
+        self.package_manager
+            .as_ref()
+            .map(|pm| pm.split('@').next().unwrap_or(pm).to_string())
     }
 
-    /// Check if this is a frontend project
     pub fn is_frontend(&self) -> bool {
         let frontend_deps = [
             "react",
@@ -168,7 +168,6 @@ impl PackageJson {
         frontend_deps.iter().any(|dep| self.has_dependency(dep))
     }
 
-    /// Check if this is a backend project
     pub fn is_backend(&self) -> bool {
         let backend_deps = [
             "express",
@@ -194,7 +193,6 @@ impl PackageJson {
         backend_deps.iter().any(|dep| self.has_dependency(dep))
     }
 
-    /// Check if this is a desktop project
     pub fn is_desktop(&self) -> bool {
         let desktop_deps = [
             "@tauri-apps/api",
@@ -208,7 +206,6 @@ impl PackageJson {
         desktop_deps.iter().any(|dep| self.has_dependency(dep))
     }
 
-    /// Check if this is a mobile project
     pub fn is_mobile(&self) -> bool {
         let mobile_deps = [
             "react-native",

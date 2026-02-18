@@ -1,8 +1,39 @@
 use crate::models::detected_service::{Framework, PackageManager};
 use crate::utils::parsers::{CargoToml, PackageJson, TauriConf};
+use std::env::consts::OS;
 use std::path::Path;
 
-/// Commands detected for a service
+// ---------------------------------------------------------------------------
+// OS helpers
+// ---------------------------------------------------------------------------
+
+/// Returns `"mvnw.cmd"` on Windows, `"./mvnw"` on Unix.
+fn mvnw() -> &'static str {
+    if OS == "windows" {
+        "mvnw.cmd"
+    } else {
+        "./mvnw"
+    }
+}
+
+/// Returns `"gradlew.bat"` on Windows, `"./gradlew"` on Unix.
+fn gradlew() -> &'static str {
+    if OS == "windows" {
+        "gradlew.bat"
+    } else {
+        "./gradlew"
+    }
+}
+
+/// Returns `"app.exe"` on Windows, `"./app"` on Unix.
+fn go_binary() -> &'static str {
+    if OS == "windows" {
+        "app.exe"
+    } else {
+        "./app"
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct DetectedCommands {
     pub dev: Option<String>,
@@ -11,24 +42,22 @@ pub struct DetectedCommands {
     pub install: Option<String>,
 }
 
-/// Detect development commands for a service
 pub fn detect_commands(
     path: &Path,
     framework: &Framework,
     package_manager: &PackageManager,
+    package_json: Option<&PackageJson>,
+    cargo_toml: Option<&CargoToml>,
 ) -> DetectedCommands {
-    let mut commands = DetectedCommands::default();
+    let mut commands = DetectedCommands {
+        install: Some(package_manager.install_command().to_string()),
+        ..Default::default()
+    };
 
-    // Set install command from package manager
-    commands.install = Some(package_manager.install_command().to_string());
-
-    // Try framework-specific detection first
     match framework {
         Framework::Tauri => {
             if let Some(conf) = TauriConf::parse(path) {
-                // Frontend dev command from tauri.conf.json
                 if conf.get_frontend_dev_command().is_some() {
-                    // The full Tauri dev command
                     commands.dev = Some("cargo tauri dev".to_string());
                 }
                 if conf.get_frontend_build_command().is_some() {
@@ -47,7 +76,7 @@ pub fn detect_commands(
         | Framework::Warp
         | Framework::Tide
         | Framework::Rust => {
-            if let Some(cargo) = CargoToml::parse(path) {
+            if let Some(cargo) = cargo_toml {
                 commands.dev = Some(cargo.get_dev_command());
                 commands.build = Some(cargo.get_build_command());
             } else {
@@ -60,8 +89,7 @@ pub fn detect_commands(
         _ => {}
     }
 
-    // Try to get commands from package.json (Node.js ecosystem)
-    if let Some(pkg) = PackageJson::parse(path) {
+    if let Some(pkg) = package_json {
         let run_prefix = package_manager.run_prefix();
 
         if let Some(dev) = pkg.get_dev_command() {
@@ -86,7 +114,6 @@ pub fn detect_commands(
             ));
         }
 
-        // If no dev command but start exists, use start for dev
         if commands.dev.is_none() && commands.start.is_some() {
             commands.dev = commands.start.clone();
         }
@@ -94,11 +121,10 @@ pub fn detect_commands(
         return commands;
     }
 
-    // Python frameworks
     match framework {
         Framework::Django => {
             commands.dev = Some("python manage.py runserver".to_string());
-            commands.build = None; // Django doesn't have a build step
+            commands.build = None;
             commands.start = Some("python manage.py runserver".to_string());
         }
         Framework::Flask => {
@@ -116,7 +142,6 @@ pub fn detect_commands(
         _ => {}
     }
 
-    // PHP frameworks
     match framework {
         Framework::Laravel => {
             commands.dev = Some("php artisan serve".to_string());
@@ -132,7 +157,6 @@ pub fn detect_commands(
         _ => {}
     }
 
-    // Ruby frameworks
     match framework {
         Framework::Rails => {
             commands.dev = Some("rails server".to_string());
@@ -148,7 +172,6 @@ pub fn detect_commands(
         _ => {}
     }
 
-    // Go frameworks
     match framework {
         Framework::Gin
         | Framework::Echo
@@ -157,35 +180,36 @@ pub fn detect_commands(
         | Framework::Beego
         | Framework::Go => {
             commands.dev = Some("go run .".to_string());
-            commands.build = Some("go build -o app .".to_string());
-            commands.start = Some("./app".to_string());
+            commands.build = Some(format!(
+                "go build -o {} .",
+                go_binary().trim_start_matches("./")
+            ));
+            commands.start = Some(go_binary().to_string());
         }
         _ => {}
     }
 
-    // Java/Kotlin frameworks
     match framework {
         Framework::Spring => {
-            if path.join("mvnw").exists() {
-                commands.dev = Some("./mvnw spring-boot:run".to_string());
-                commands.build = Some("./mvnw package".to_string());
-            } else if path.join("gradlew").exists() {
-                commands.dev = Some("./gradlew bootRun".to_string());
-                commands.build = Some("./gradlew build".to_string());
+            if path.join("mvnw").exists() || path.join("mvnw.cmd").exists() {
+                commands.dev = Some(format!("{} spring-boot:run", mvnw()));
+                commands.build = Some(format!("{} package", mvnw()));
+            } else if path.join("gradlew").exists() || path.join("gradlew.bat").exists() {
+                commands.dev = Some(format!("{} bootRun", gradlew()));
+                commands.build = Some(format!("{} build", gradlew()));
             }
         }
         Framework::Quarkus => {
-            commands.dev = Some("./mvnw quarkus:dev".to_string());
-            commands.build = Some("./mvnw package".to_string());
+            commands.dev = Some(format!("{} quarkus:dev", mvnw()));
+            commands.build = Some(format!("{} package", mvnw()));
         }
         Framework::Ktor => {
-            commands.dev = Some("./gradlew run".to_string());
-            commands.build = Some("./gradlew build".to_string());
+            commands.dev = Some(format!("{} run", gradlew()));
+            commands.build = Some(format!("{} build", gradlew()));
         }
         _ => {}
     }
 
-    // .NET frameworks
     match framework {
         Framework::AspNetCore | Framework::Blazor | Framework::CSharp => {
             commands.dev = Some("dotnet watch run".to_string());
@@ -195,7 +219,6 @@ pub fn detect_commands(
         _ => {}
     }
 
-    // Elixir
     if *framework == Framework::Elixir {
         commands.dev = Some("mix phx.server".to_string());
         commands.start = Some("mix phx.server".to_string());
@@ -204,7 +227,6 @@ pub fn detect_commands(
     commands
 }
 
-/// Format npm/yarn/pnpm command properly
 fn format_npm_command(
     run_prefix: &str,
     script_name: &str,
@@ -221,21 +243,19 @@ fn format_npm_command(
     }
 }
 
-/// Get the Tauri-specific commands for frontend service
 pub fn get_tauri_frontend_commands(
     path: &Path,
     package_manager: &PackageManager,
 ) -> DetectedCommands {
-    let mut commands = DetectedCommands::default();
+    let mut commands = DetectedCommands {
+        install: Some(package_manager.install_command().to_string()),
+        ..Default::default()
+    };
 
-    commands.install = Some(package_manager.install_command().to_string());
-
-    // Check tauri.conf.json for frontend commands
     if let Some(conf) = TauriConf::parse(path) {
         commands.dev = conf.get_frontend_dev_command();
         commands.build = conf.get_frontend_build_command();
     } else {
-        // Fallback to common scripts
         commands.dev = Some(format!("{} dev", package_manager.run_prefix()));
         commands.build = Some(format!("{} build", package_manager.run_prefix()));
     }
@@ -243,7 +263,6 @@ pub fn get_tauri_frontend_commands(
     commands
 }
 
-/// Get the Tauri backend (Rust) commands
 pub fn get_tauri_backend_commands() -> DetectedCommands {
     DetectedCommands {
         dev: Some("cargo tauri dev".to_string()),

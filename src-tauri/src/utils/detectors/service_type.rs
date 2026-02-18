@@ -2,21 +2,20 @@ use crate::models::detected_service::{Framework, ServiceCategory};
 use crate::utils::parsers::PackageJson;
 use std::path::Path;
 
-/// Determine the service category based on framework and project structure
-pub fn detect_service_category(path: &Path, framework: &Framework) -> ServiceCategory {
-    // First check based on framework
+pub fn detect_service_category(
+    path: &Path,
+    framework: &Framework,
+    package_json: Option<&PackageJson>,
+) -> ServiceCategory {
     match framework {
-        // Desktop apps
         Framework::Tauri | Framework::Electron | Framework::Neutralino => ServiceCategory::Desktop,
 
-        // Mobile apps
         Framework::ReactNative
         | Framework::Flutter
         | Framework::Expo
         | Framework::Ionic
         | Framework::Capacitor => ServiceCategory::Mobile,
 
-        // Backend frameworks
         Framework::Express
         | Framework::Fastify
         | Framework::Koa
@@ -53,9 +52,7 @@ pub fn detect_service_category(path: &Path, framework: &Framework) -> ServiceCat
         | Framework::Ktor
         | Framework::AspNetCore => ServiceCategory::Backend,
 
-        // Fullstack frameworks
         Framework::NextJs | Framework::NuxtJs | Framework::Remix | Framework::SvelteKit => {
-            // Check if it has API routes
             if has_api_routes(path) {
                 ServiceCategory::Fullstack
             } else {
@@ -63,7 +60,6 @@ pub fn detect_service_category(path: &Path, framework: &Framework) -> ServiceCat
             }
         }
 
-        // Frontend frameworks
         Framework::React
         | Framework::Vue
         | Framework::Angular
@@ -74,17 +70,14 @@ pub fn detect_service_category(path: &Path, framework: &Framework) -> ServiceCat
         | Framework::Astro
         | Framework::Gatsby => ServiceCategory::Frontend,
 
-        // Build tools - check project structure
         Framework::Vite
         | Framework::Webpack
         | Framework::Parcel
         | Framework::Esbuild
-        | Framework::Turbopack => detect_from_project_structure(path),
+        | Framework::Turbopack => detect_from_project_structure(path, package_json),
 
-        // CMS - typically backend
         Framework::WordPress | Framework::Drupal | Framework::Ghost => ServiceCategory::Backend,
 
-        // Blazor can be frontend or fullstack
         Framework::Blazor => {
             if has_api_controllers(path) {
                 ServiceCategory::Fullstack
@@ -93,7 +86,6 @@ pub fn detect_service_category(path: &Path, framework: &Framework) -> ServiceCat
             }
         }
 
-        // Generic languages - analyze project structure
         Framework::Node
         | Framework::Bun
         | Framework::Deno
@@ -105,16 +97,17 @@ pub fn detect_service_category(path: &Path, framework: &Framework) -> ServiceCat
         | Framework::Java
         | Framework::Kotlin
         | Framework::CSharp
-        | Framework::Elixir => detect_from_project_structure(path),
+        | Framework::Elixir => detect_from_project_structure(path, package_json),
 
         Framework::Unknown => ServiceCategory::Unknown,
     }
 }
 
-/// Detect service type from project structure when framework doesn't tell us
-fn detect_from_project_structure(path: &Path) -> ServiceCategory {
-    // Check package.json indicators
-    if let Some(pkg) = PackageJson::parse(path) {
+fn detect_from_project_structure(
+    path: &Path,
+    package_json: Option<&PackageJson>,
+) -> ServiceCategory {
+    if let Some(pkg) = package_json {
         if pkg.is_frontend() && pkg.is_backend() {
             return ServiceCategory::Fullstack;
         }
@@ -132,7 +125,6 @@ fn detect_from_project_structure(path: &Path) -> ServiceCategory {
         }
     }
 
-    // Check directory structure
     let frontend_indicators = [
         "src/components",
         "src/pages",
@@ -173,7 +165,6 @@ fn detect_from_project_structure(path: &Path) -> ServiceCategory {
         (true, false) => ServiceCategory::Frontend,
         (false, true) => ServiceCategory::Backend,
         (false, false) => {
-            // Default to backend for server-side languages
             if is_server_language(path) {
                 ServiceCategory::Backend
             } else {
@@ -183,21 +174,16 @@ fn detect_from_project_structure(path: &Path) -> ServiceCategory {
     }
 }
 
-/// Check if the project has API routes (for Next.js, Nuxt, etc.)
 fn has_api_routes(path: &Path) -> bool {
-    // Next.js API routes
     if path.join("pages/api").exists() || path.join("app/api").exists() {
         return true;
     }
 
-    // Nuxt server routes
     if path.join("server/api").exists() || path.join("server/routes").exists() {
         return true;
     }
 
-    // SvelteKit endpoints
     if path.join("src/routes").exists() {
-        // Check for +server.ts files
         let has_server_files = walkdir::WalkDir::new(path.join("src/routes"))
             .max_depth(5)
             .into_iter()
@@ -212,14 +198,11 @@ fn has_api_routes(path: &Path) -> bool {
     false
 }
 
-/// Check if the project has API controllers (.NET)
 fn has_api_controllers(path: &Path) -> bool {
     path.join("Controllers").exists() || path.join("controllers").exists()
 }
 
-/// Check if the language is typically server-side
 fn is_server_language(path: &Path) -> bool {
-    // Check for server-side language files
     let server_indicators = [
         "go.mod",
         "Cargo.toml",
@@ -234,20 +217,4 @@ fn is_server_language(path: &Path) -> bool {
     server_indicators
         .iter()
         .any(|indicator| path.join(indicator).exists())
-}
-
-/// Get a human-readable name for the service category
-#[allow(dead_code)]
-pub fn category_display_name(category: &ServiceCategory) -> &'static str {
-    match category {
-        ServiceCategory::Frontend => "Frontend",
-        ServiceCategory::Backend => "Backend",
-        ServiceCategory::Fullstack => "Fullstack",
-        ServiceCategory::Desktop => "Desktop",
-        ServiceCategory::Mobile => "Mobile",
-        ServiceCategory::Api => "API",
-        ServiceCategory::Worker => "Worker",
-        ServiceCategory::Docker => "Docker",
-        ServiceCategory::Unknown => "Unknown",
-    }
 }

@@ -6,116 +6,12 @@ use crate::utils::detectors::{
     detect_package_manager, detect_port, detect_service_category, get_tauri_backend_commands,
     get_tauri_frontend_commands, get_workspace_projects, has_docker, has_docker_compose,
 };
-use crate::utils::parsers::{is_tauri_project, PackageJson, TauriConf};
+use crate::utils::parsers::{is_tauri_project, CargoToml, PackageJson, TauriConf};
+use rayon::prelude::*;
 use std::fs;
 use std::path::Path;
 
-// ============================================================================
-// Legacy types for backward compatibility
-// ============================================================================
-
-/// Legacy project type (for backward compatibility)
-#[derive(Debug, Clone)]
-pub enum ProjectType {
-    Node,
-    Rust,
-    Php,
-    Python,
-    Ruby,
-    Go,
-}
-
-impl ProjectType {
-    pub fn to_stack(&self) -> &'static str {
-        match self {
-            ProjectType::Node => "node",
-            ProjectType::Rust => "rust",
-            ProjectType::Php => "php",
-            ProjectType::Python => "django",
-            ProjectType::Ruby => "rails",
-            ProjectType::Go => "go",
-        }
-    }
-
-    pub fn default_port(&self) -> u16 {
-        match self {
-            ProjectType::Node => 3000,
-            ProjectType::Rust => 8080,
-            ProjectType::Php => 8000,
-            ProjectType::Python => 5000,
-            ProjectType::Ruby => 3000,
-            ProjectType::Go => 8080,
-        }
-    }
-}
-
-/// Legacy scanned project (for backward compatibility)
-#[derive(Debug, Clone)]
-pub struct ScannedProject {
-    pub name: String,
-    pub path: String,
-    pub project_type: ProjectType,
-}
-
-// ============================================================================
-// Legacy functions for backward compatibility
-// ============================================================================
-
-/// Detecta o tipo de projeto baseado nos arquivos encontrados (legacy)
-pub fn detect_project_type(path: &Path) -> Option<ProjectType> {
-    if !path.is_dir() {
-        return None;
-    }
-
-    let entries = match fs::read_dir(path) {
-        Ok(entries) => entries,
-        Err(_) => return None,
-    };
-
-    let mut has_package_json = false;
-    let mut has_cargo_toml = false;
-    let mut has_composer_json = false;
-    let mut has_requirements_txt = false;
-    let mut has_gemfile = false;
-    let mut has_go_mod = false;
-
-    for entry in entries.flatten() {
-        let file_name = entry.file_name();
-        let file_name = file_name.to_string_lossy();
-
-        match file_name.as_ref() {
-            "package.json" => has_package_json = true,
-            "Cargo.toml" => has_cargo_toml = true,
-            "composer.json" => has_composer_json = true,
-            "requirements.txt" => has_requirements_txt = true,
-            "Gemfile" => has_gemfile = true,
-            "go.mod" => has_go_mod = true,
-            _ => {}
-        }
-    }
-
-    // Priority: backend languages first, then Node.js
-    // This ensures PHP/Python/Ruby/Go projects with package.json (for frontend assets)
-    // are correctly detected
-    if has_composer_json {
-        Some(ProjectType::Php)
-    } else if has_requirements_txt {
-        Some(ProjectType::Python)
-    } else if has_gemfile {
-        Some(ProjectType::Ruby)
-    } else if has_go_mod {
-        Some(ProjectType::Go)
-    } else if has_cargo_toml {
-        Some(ProjectType::Rust)
-    } else if has_package_json {
-        Some(ProjectType::Node)
-    } else {
-        None
-    }
-}
-
-/// Verifica se uma pasta parece ser um projeto válido (legacy)
-pub fn is_valid_project(path: &Path) -> bool {
+fn is_valid_project(path: &Path) -> bool {
     if !path.is_dir() {
         return false;
     }
@@ -125,12 +21,10 @@ pub fn is_valid_project(path: &Path) -> bool {
         None => return false,
     };
 
-    // Ignorar pastas ocultas
     if folder_name.starts_with('.') {
         return false;
     }
 
-    // Ignorar pastas comuns que não são projetos
     let ignored = [
         "node_modules",
         "target",
@@ -144,45 +38,24 @@ pub fn is_valid_project(path: &Path) -> bool {
         return false;
     }
 
-    // Verificar se tem pelo menos um arquivo de configuração de projeto
-    detect_project_type(path).is_some()
+    let has_project_file = [
+        "package.json",
+        "Cargo.toml",
+        "composer.json",
+        "requirements.txt",
+        "pyproject.toml",
+        "Gemfile",
+        "go.mod",
+        "pom.xml",
+        "build.gradle",
+        "mix.exs",
+    ]
+    .iter()
+    .any(|file| path.join(file).exists());
+
+    has_project_file
 }
 
-/// Escaneia uma pasta e retorna todos os projetos encontrados (legacy)
-pub fn scan_workspace(path: &str) -> Vec<ScannedProject> {
-    let mut projects = Vec::new();
-
-    let entries = match fs::read_dir(path) {
-        Ok(entries) => entries,
-        Err(_) => return projects,
-    };
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-
-        if is_valid_project(&path) {
-            let project_type = detect_project_type(&path).unwrap();
-            let name = path
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_default();
-
-            projects.push(ScannedProject {
-                name,
-                path: path.to_string_lossy().to_string(),
-                project_type,
-            });
-        }
-    }
-
-    projects
-}
-
-// ============================================================================
-// New advanced scanning functions
-// ============================================================================
-
-/// Scan a project deeply and detect all services
 pub fn scan_project_deep(path: &Path, max_depth: u8) -> DetectedProject {
     let name = path
         .file_name()
@@ -191,21 +64,16 @@ pub fn scan_project_deep(path: &Path, max_depth: u8) -> DetectedProject {
 
     let mut project = DetectedProject::new(name, path.to_string_lossy().to_string());
 
-    // Detect root package manager
     project.root_package_manager = detect_package_manager(path);
-
-    // Check for Docker
     project.has_docker = has_docker(path);
     project.has_docker_compose = has_docker_compose(path);
 
-    // Check if this is a Tauri project
     if is_tauri_project(path) {
         project.is_tauri = true;
         project.services = scan_tauri_project(path);
         return project;
     }
 
-    // Check for monorepo
     if let Some(monorepo_info) = detect_monorepo(path) {
         project.is_monorepo = true;
         project.monorepo_tool = monorepo_info.tool;
@@ -215,24 +83,18 @@ pub fn scan_project_deep(path: &Path, max_depth: u8) -> DetectedProject {
             .map(|p| p.to_string_lossy().to_string())
             .collect();
 
-        // Scan each workspace
         for workspace_path in &monorepo_info.workspace_paths {
             if let Some(service) = scan_single_service(workspace_path, path) {
                 project.services.push(service);
             }
         }
-    } else {
-        // Single project - scan as one service
-        if let Some(service) = scan_single_service(path, path) {
-            project.services.push(service);
-        }
+    } else if let Some(service) = scan_single_service(path, path) {
+        project.services.push(service);
     }
 
-    // Also scan Docker services if present
     if project.has_docker_compose {
         let docker_services = detect_docker_services(path);
         for docker_service in docker_services {
-            // Avoid duplicates (if the docker service points to an already detected service)
             let is_duplicate = project.services.iter().any(|s| {
                 s.relative_path == docker_service.relative_path
                     || s.docker_service_name == docker_service.docker_service_name
@@ -244,7 +106,6 @@ pub fn scan_project_deep(path: &Path, max_depth: u8) -> DetectedProject {
         }
     }
 
-    // Scan for additional projects if depth > 1
     if max_depth > 1 && !project.is_monorepo {
         let additional_projects = get_workspace_projects(path, max_depth);
         for additional_path in additional_projects {
@@ -262,13 +123,12 @@ pub fn scan_project_deep(path: &Path, max_depth: u8) -> DetectedProject {
     project
 }
 
-/// Scan a Tauri project (special handling)
 fn scan_tauri_project(path: &Path) -> Vec<DetectedService> {
     let mut services = Vec::new();
 
     let package_manager = detect_package_manager(path);
+    let package_json = PackageJson::parse(path);
 
-    // Service 1: Frontend
     let mut frontend = DetectedService::new(
         "frontend".to_string(),
         path.to_string_lossy().to_string(),
@@ -278,8 +138,7 @@ fn scan_tauri_project(path: &Path) -> Vec<DetectedService> {
     frontend.package_manager = package_manager.clone();
     frontend.category = ServiceCategory::Frontend;
 
-    // Detect frontend framework
-    if let Some(pkg) = PackageJson::parse(path) {
+    if let Some(ref pkg) = package_json {
         if pkg.has_dependency("react") {
             frontend.framework = Framework::React;
         } else if pkg.has_dependency("vue") {
@@ -293,12 +152,10 @@ fn scan_tauri_project(path: &Path) -> Vec<DetectedService> {
         }
     }
 
-    // Get port from tauri.conf.json
     if let Some(tauri_conf) = TauriConf::parse(path) {
         frontend.port = tauri_conf.get_dev_port();
     }
 
-    // Get commands
     let frontend_commands = get_tauri_frontend_commands(path, &package_manager);
     frontend.dev_command = frontend_commands.dev;
     frontend.build_command = frontend_commands.build;
@@ -309,7 +166,6 @@ fn scan_tauri_project(path: &Path) -> Vec<DetectedService> {
 
     services.push(frontend);
 
-    // Service 2: Tauri Backend
     let tauri_src = path.join("src-tauri");
     let mut backend = DetectedService::new(
         "tauri".to_string(),
@@ -321,7 +177,7 @@ fn scan_tauri_project(path: &Path) -> Vec<DetectedService> {
     backend.category = ServiceCategory::Desktop;
     backend.framework = Framework::Tauri;
     backend.stack = "rust".to_string();
-    backend.port = None; // Desktop apps don't have HTTP ports
+    backend.port = None;
 
     let backend_commands = get_tauri_backend_commands();
     backend.dev_command = backend_commands.dev;
@@ -333,7 +189,6 @@ fn scan_tauri_project(path: &Path) -> Vec<DetectedService> {
     services
 }
 
-/// Scan a single service/project
 fn scan_single_service(path: &Path, root_path: &Path) -> Option<DetectedService> {
     if !path.exists() || !path.is_dir() {
         return None;
@@ -359,26 +214,26 @@ fn scan_single_service(path: &Path, root_path: &Path) -> Option<DetectedService>
         },
     );
 
-    // Detect package manager
+    let package_json = PackageJson::parse(path);
+    let cargo_toml = CargoToml::parse(path);
+
     service.package_manager = detect_package_manager(path);
+    service.framework = detect_framework(path, package_json.as_ref(), cargo_toml.as_ref());
+    service.category = detect_service_category(path, &service.framework, package_json.as_ref());
+    service.port = detect_port(path, &service.framework, package_json.as_ref());
 
-    // Detect framework
-    service.framework = detect_framework(path);
-
-    // Detect service category
-    service.category = detect_service_category(path, &service.framework);
-
-    // Detect port
-    service.port = detect_port(path, &service.framework);
-
-    // Detect commands
-    let commands = detect_commands(path, &service.framework, &service.package_manager);
+    let commands = detect_commands(
+        path,
+        &service.framework,
+        &service.package_manager,
+        package_json.as_ref(),
+        cargo_toml.as_ref(),
+    );
     service.dev_command = commands.dev;
     service.build_command = commands.build;
     service.start_command = commands.start;
     service.install_command = commands.install;
 
-    // Update stack from framework
     service.update_stack_from_framework();
     service.update_port_from_framework();
     service.update_install_from_package_manager();
@@ -386,44 +241,40 @@ fn scan_single_service(path: &Path, root_path: &Path) -> Option<DetectedService>
     Some(service)
 }
 
-/// Scan workspace and return detailed project information
 pub fn scan_workspace_deep(workspace_path: &str, max_depth: u8) -> Vec<DetectedProject> {
-    let mut projects = Vec::new();
     let path = Path::new(workspace_path);
 
-    let entries = match fs::read_dir(path) {
-        Ok(entries) => entries,
-        Err(_) => return projects,
+    let entries: Vec<_> = match fs::read_dir(path) {
+        Ok(entries) => entries.filter_map(|e| e.ok()).collect(),
+        Err(_) => return Vec::new(),
     };
 
-    for entry in entries.flatten() {
-        let entry_path = entry.path();
+    entries
+        .into_par_iter()
+        .filter_map(|entry| {
+            let entry_path = entry.path();
 
-        if !entry_path.is_dir() {
-            continue;
-        }
+            if !entry_path.is_dir() {
+                return None;
+            }
 
-        let folder_name = entry_path
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_default();
+            let folder_name = entry_path.file_name()?;
+            let folder_name = folder_name.to_string_lossy();
 
-        // Skip hidden directories and common non-project directories
-        if folder_name.starts_with('.')
-            || matches!(
-                folder_name.as_str(),
-                "node_modules" | "target" | "dist" | "build" | "__pycache__" | "vendor"
-            )
-        {
-            continue;
-        }
+            if folder_name.starts_with('.')
+                || matches!(
+                    folder_name.as_ref(),
+                    "node_modules" | "target" | "dist" | "build" | "__pycache__" | "vendor"
+                )
+            {
+                return None;
+            }
 
-        // Check if this is a valid project
-        if is_valid_project(&entry_path) {
-            let project = scan_project_deep(&entry_path, max_depth);
-            projects.push(project);
-        }
-    }
-
-    projects
+            if is_valid_project(&entry_path) {
+                Some(scan_project_deep(&entry_path, max_depth))
+            } else {
+                None
+            }
+        })
+        .collect()
 }
