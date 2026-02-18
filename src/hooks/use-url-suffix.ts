@@ -16,8 +16,7 @@ export function useUrlSuffix() {
         toast.success(t("url.saveSuccess"), {
           description: t("url.saveSuccessDescription"),
         })
-      } catch (error) {
-        console.error("Failed to save URL Suffix:", error)
+      } catch {
         toast.error(t("url.saveError"), {
           description: t("common.tryAgain"),
         })
@@ -32,9 +31,7 @@ export function useUrlSuffix() {
       if (suffix) {
         setUrlSuffix(suffix)
       }
-    } catch (error) {
-      console.error("Failed to load URL Suffix:", error)
-    }
+    } catch {}
   }, [setUrlSuffix])
 
   return {

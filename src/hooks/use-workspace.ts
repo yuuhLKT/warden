@@ -20,8 +20,7 @@ export function useWorkspace() {
         })
         // Scan workspace after saving the root path
         await scanWorkspace()
-      } catch (error) {
-        console.error("Failed to save root path:", error)
+      } catch {
         toast.error(t("workspace.saveError"), {
           description: t("common.tryAgain"),
         })
@@ -36,9 +35,7 @@ export function useWorkspace() {
       if (path) {
         setRootPath(path)
       }
-    } catch (error) {
-      console.error("Failed to load root path:", error)
-    }
+    } catch {}
   }, [setRootPath])
 
   return {

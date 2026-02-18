@@ -16,8 +16,7 @@ export function useScanDepth() {
         toast.success(t("settings.scanDepth.saveSuccess"), {
           description: t("settings.scanDepth.saveSuccessDescription"),
         })
-      } catch (error) {
-        console.error("Failed to save scan depth:", error)
+      } catch {
         toast.error(t("settings.scanDepth.saveError"), {
           description: t("common.tryAgain"),
         })
@@ -30,9 +29,7 @@ export function useScanDepth() {
     try {
       const depth = await scanDepthApi.getScanDepth()
       setScanDepth(depth)
-    } catch (error) {
-      console.error("Failed to load scan depth:", error)
-    }
+    } catch {}
   }, [setScanDepth])
 
   return {
