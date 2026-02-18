@@ -7,6 +7,8 @@ import { useWorkspace } from "@/hooks/use-workspace"
 import { useFolderPicker } from "@/hooks/use-folder-picker"
 import { useGit } from "@/hooks/use-git"
 import { useUrlSuffix } from "@/hooks/use-url-suffix"
+import { projectApi } from "@/lib/api"
+import { STACKS } from "@/lib/constants"
 import type { Stack, ServiceType } from "@/types/project"
 import {
   Dialog,
@@ -32,31 +34,13 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { StackIcon } from "@/components/project/stack-icon"
 import { Plus, Trash2, FolderOpen, Github, FolderKanban, ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ScaffoldProjectDialog } from "./scaffold-project-dialog"
 
-type Step = "choose" | "new-project" | "github"
+type Step = "choose" | "scaffold" | "new-project" | "github"
 
 interface AddProjectDialogProps {
   trigger?: React.ReactNode
 }
-
-const stacks: Stack[] = [
-  "react",
-  "next",
-  "vue",
-  "angular",
-  "svelte",
-  "node",
-  "express",
-  "nestjs",
-  "laravel",
-  "php",
-  "django",
-  "flask",
-  "rails",
-  "go",
-  "rust",
-  "other",
-]
 
 export function AddProjectDialog({ trigger }: AddProjectDialogProps) {
   const { t } = useTranslation()
@@ -134,29 +118,63 @@ export function AddProjectDialog({ trigger }: AddProjectDialogProps) {
       return
     }
 
+    // Derive the actual cloned folder: git clones into folder/<repo-name>
+    const repoName =
+      githubData.gitUrl
+        .split("/")
+        .pop()
+        ?.replace(/\.git$/, "") ?? githubData.name
+    const clonedFolder = `${githubData.folder}/${repoName}`
+    const slug = githubData.name.toLowerCase().replace(/\s+/g, "-")
+
     const success = await cloneRepo(githubData.gitUrl, githubData.folder)
     if (success) {
-      // Criar projeto no banco após clonar
       try {
-        await addProject({
-          name: githubData.name,
-          folder: githubData.folder,
-          services: [
+        // Scan the freshly-cloned directory so stack/commands are auto-detected
+        let services: Parameters<typeof addProject>[0]["services"]
+        try {
+          const detected = await projectApi.scanProjectServices(clonedFolder, 2)
+          if (detected.services.length > 0) {
+            services = detected.services.map(
+              (s: {
+                name: string
+                category: string
+                stack: string
+                path: string
+                port?: number
+                devCommand?: string
+              }) => ({
+                name: s.name,
+                type: (s.category === "frontend" || s.category === "mobile"
+                  ? "frontend"
+                  : "backend") as ServiceType,
+                stack: (s.stack || "other") as Stack,
+                path: s.path,
+                url: `${slug}.${urlSuffix}`,
+                port: s.port ?? 3000,
+                command: s.devCommand ?? "npm run dev",
+              })
+            )
+          } else {
+            throw new Error("no services detected")
+          }
+        } catch {
+          services = [
             {
               name: "main",
               type: "backend",
-              stack: "node",
-              path: githubData.folder,
-              url: `${githubData.name.toLowerCase().replace(/\s+/g, "-")}.${urlSuffix}`,
+              stack: "other",
+              path: clonedFolder,
+              url: `${slug}.${urlSuffix}`,
               port: 3000,
               command: "npm run dev",
             },
-          ],
-        })
+          ]
+        }
+
+        await addProject({ name: githubData.name, folder: clonedFolder, services })
         handleClose()
-      } catch (error) {
-        console.error("Failed to create project after clone:", error)
-      }
+      } catch {}
     }
   }
 
@@ -179,35 +197,43 @@ export function AddProjectDialog({ trigger }: AddProjectDialogProps) {
   }
 
   const renderChooseStep = () => (
-    <div className="grid grid-cols-2 gap-4 py-4">
-      <button
-        type="button"
-        onClick={() => setStep("new-project")}
-        className="hover:bg-accent flex cursor-pointer flex-col items-center gap-3 rounded-lg border-2 border-dashed p-6 transition-colors"
-      >
-        <div className="bg-primary/10 flex size-12 items-center justify-center rounded-lg">
-          <FolderKanban className="text-primary size-6" />
-        </div>
-        <div className="text-center">
-          <p className="font-medium">{t("projects.newProject")}</p>
-          <p className="text-muted-foreground text-xs">{t("projects.newProjectDescription")}</p>
-        </div>
-      </button>
-      <button
-        type="button"
-        onClick={() => setStep("github")}
-        className="hover:bg-accent flex cursor-pointer flex-col items-center gap-3 rounded-lg border-2 border-dashed p-6 transition-colors"
-      >
-        <div className="flex size-12 items-center justify-center rounded-lg bg-black dark:bg-white">
-          <Github className="size-6 text-white dark:text-black" />
-        </div>
-        <div className="text-center">
-          <p className="font-medium">{t("projects.cloneFromGithub")}</p>
-          <p className="text-muted-foreground text-xs">
-            {t("projects.cloneFromGithubDescription")}
-          </p>
-        </div>
-      </button>
+    <div className="grid grid-cols-1 gap-4 py-4">
+      <ScaffoldProjectDialog
+        onSuccess={() => {
+          setOpen(false)
+          handleClose()
+        }}
+      />
+      <div className="grid grid-cols-2 gap-4">
+        <button
+          type="button"
+          onClick={() => setStep("new-project")}
+          className="hover:bg-accent flex cursor-pointer flex-col items-center gap-3 rounded-lg border-2 border-dashed p-6 transition-colors"
+        >
+          <div className="bg-primary/10 flex size-12 items-center justify-center rounded-lg">
+            <FolderKanban className="text-primary size-6" />
+          </div>
+          <div className="text-center">
+            <p className="font-medium">{t("projects.newProject")}</p>
+            <p className="text-muted-foreground text-xs">{t("projects.newProjectDescription")}</p>
+          </div>
+        </button>
+        <button
+          type="button"
+          onClick={() => setStep("github")}
+          className="hover:bg-accent flex cursor-pointer flex-col items-center gap-3 rounded-lg border-2 border-dashed p-6 transition-colors"
+        >
+          <div className="flex size-12 items-center justify-center rounded-lg bg-black dark:bg-white">
+            <Github className="size-6 text-white dark:text-black" />
+          </div>
+          <div className="text-center">
+            <p className="font-medium">{t("projects.cloneFromGithub")}</p>
+            <p className="text-muted-foreground text-xs">
+              {t("projects.cloneFromGithubDescription")}
+            </p>
+          </div>
+        </button>
+      </div>
     </div>
   )
 
@@ -357,7 +383,7 @@ export function AddProjectDialog({ trigger }: AddProjectDialogProps) {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {stacks.map((stack) => (
+                        {STACKS.map((stack) => (
                           <SelectItem key={stack} value={stack}>
                             <div className="flex items-center gap-2">
                               <StackIcon stack={stack} className="size-4" />
