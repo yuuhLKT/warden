@@ -1,0 +1,268 @@
+{
+  "templates": [
+    {
+      "id": "next-ts",
+      "name": "Next.js",
+      "description": "Full-stack React framework with TypeScript",
+      "language": "typescript",
+      "packageManager": "npm",
+      "category": "fullstack",
+      "command": "npx create-next-app@latest {name} --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack",
+      "defaultPort": 3000,
+      "tags": ["react", "ssr", "typescript", "tailwind"]
+    },
+    {
+      "id": "next-js",
+      "name": "Next.js (JS)",
+      "description": "Full-stack React framework with JavaScript",
+      "language": "javascript",
+      "packageManager": "npm",
+      "category": "fullstack",
+      "command": "npx create-next-app@latest {name} --javascript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack",
+      "defaultPort": 3000,
+      "tags": ["react", "ssr", "javascript", "tailwind"]
+    },
+    {
+      "id": "vite-react-ts",
+      "name": "Vite + React + TS",
+      "description": "Fast development with Vite, React and TypeScript",
+      "language": "typescript",
+      "packageManager": "npm",
+      "category": "frontend",
+      "command": "npm create vite@latest {name} -- --template react-ts",
+      "defaultPort": 5173,
+      "tags": ["react", "vite", "typescript"]
+    },
+    {
+      "id": "vite-vue-ts",
+      "name": "Vite + Vue + TS",
+      "description": "Fast development with Vite, Vue and TypeScript",
+      "language": "typescript",
+      "packageManager": "npm",
+      "category": "frontend",
+      "command": "npm create vite@latest {name} -- --template vue-ts",
+      "defaultPort": 5173,
+      "tags": ["vue", "vite", "typescript"]
+    },
+    {
+      "id": "vite-svelte-ts",
+      "name": "Vite + Svelte + TS",
+      "description": "Fast development with Vite, Svelte and TypeScript",
+      "language": "typescript",
+      "packageManager": "npm",
+      "category": "frontend",
+      "command": "npm create vite@latest {name} -- --template svelte-ts",
+      "defaultPort": 5173,
+      "tags": ["svelte", "vite", "typescript"]
+    },
+    {
+      "id": "astro",
+      "name": "Astro",
+      "description": "Content-focused static site builder",
+      "language": "typescript",
+      "packageManager": "npm",
+      "category": "frontend",
+      "command": "npm create astro@latest {name} -- --template minimal --install --git --skip-houston",
+      "defaultPort": 4321,
+      "tags": ["static", "ssg", "astro"]
+    },
+    {
+      "id": "elysia-bun",
+      "name": "Elysia",
+      "description": "Fast Bun web framework with TypeScript",
+      "language": "typescript",
+      "packageManager": "bun",
+      "category": "backend",
+      "command": "bun create elysia {name}",
+      "defaultPort": 3000,
+      "tags": ["bun", "backend", "api", "typescript"]
+    },
+    {
+      "id": "express-ts",
+      "name": "Express + TS",
+      "description": "Minimalist web framework for Node.js",
+      "language": "typescript",
+      "packageManager": "npm",
+      "category": "backend",
+      "command": "mkdir {name} && cd {name} && npm init -y && npm install express @types/express typescript ts-node nodemon --save-dev && npx tsc --init",
+      "defaultPort": 3000,
+      "tags": ["express", "node", "api", "typescript"]
+    },
+    {
+      "id": "nestjs",
+      "name": "NestJS",
+      "description": "Progressive Node.js framework",
+      "language": "typescript",
+      "packageManager": "npm",
+      "category": "backend",
+      "command": "npx @nestjs/cli@latest new {name} --strict --skip-git --package-manager npm",
+      "defaultPort": 3000,
+      "tags": ["nestjs", "node", "api", "enterprise"]
+    },
+    {
+      "id": "fastapi",
+      "name": "FastAPI",
+      "description": "Modern, fast Python web framework",
+      "language": "python",
+      "packageManager": "pip",
+      "category": "backend",
+      "command": "mkdir {name} && cd {name} && python3 -m venv venv",
+      "defaultPort": 8000,
+      "tags": ["python", "api", "async"]
+    },
+    {
+      "id": "django",
+      "name": "Django",
+      "description": "High-level Python web framework",
+      "language": "python",
+      "packageManager": "pip",
+      "category": "fullstack",
+      "command": "django-admin startproject {name}",
+      "defaultPort": 8000,
+      "tags": ["python", "mvc", "fullstack"]
+    },
+    {
+      "id": "flask",
+      "name": "Flask",
+      "description": "Lightweight Python web framework",
+      "language": "python",
+      "packageManager": "pip",
+      "category": "backend",
+      "command": "mkdir {name} && cd {name} && python3 -m venv venv && touch app.py",
+      "defaultPort": 5000,
+      "tags": ["python", "micro", "api"]
+    },
+    {
+      "id": "laravel",
+      "name": "Laravel",
+      "description": "PHP web application framework",
+      "language": "php",
+      "packageManager": "composer",
+      "category": "fullstack",
+      "command": "composer create-project laravel/laravel {name}",
+      "defaultPort": 8000,
+      "tags": ["php", "mvc", "fullstack"]
+    },
+    {
+      "id": "symfony",
+      "name": "Symfony",
+      "description": "PHP framework for web applications",
+      "language": "php",
+      "packageManager": "composer",
+      "category": "fullstack",
+      "command": "composer create-project symfony/skeleton {name}",
+      "defaultPort": 8000,
+      "tags": ["php", "enterprise", "fullstack"]
+    },
+    {
+      "id": "axum",
+      "name": "Axum",
+      "description": "Ergonomic and modular Rust web framework",
+      "language": "rust",
+      "packageManager": "cargo",
+      "category": "backend",
+      "command": "cargo new {name} --bin",
+      "defaultPort": 3000,
+      "tags": ["rust", "tokio", "async", "api"]
+    },
+    {
+      "id": "actix",
+      "name": "Actix Web",
+      "description": "Powerful, pragmatic, and fast Rust web framework",
+      "language": "rust",
+      "packageManager": "cargo",
+      "category": "backend",
+      "command": "cargo new {name} --bin",
+      "defaultPort": 8080,
+      "tags": ["rust", "actor", "high-performance", "api"]
+    },
+    {
+      "id": "gin",
+      "name": "Gin",
+      "description": "Fast Go web framework",
+      "language": "go",
+      "packageManager": "go",
+      "category": "backend",
+      "command": "mkdir {name} && cd {name} && go mod init {name}",
+      "defaultPort": 8080,
+      "tags": ["go", "fast", "api", "gin"]
+    },
+    {
+      "id": "echo",
+      "name": "Echo",
+      "description": "High performance, minimalist Go web framework",
+      "language": "go",
+      "packageManager": "go",
+      "category": "backend",
+      "command": "mkdir {name} && cd {name} && go mod init {name}",
+      "defaultPort": 8080,
+      "tags": ["go", "fast", "api", "echo"]
+    },
+    {
+      "id": "spring",
+      "name": "Spring Boot",
+      "description": "Java-based framework for microservices",
+      "language": "java",
+      "packageManager": "maven",
+      "category": "backend",
+      "command": "curl https://start.spring.io/starter.zip -d dependencies=web -d type=maven-project -d baseDir={name} -o {name}.zip && unzip {name}.zip && rm {name}.zip",
+      "defaultPort": 8080,
+      "tags": ["java", "enterprise", "microservices"]
+    },
+    {
+      "id": "rails",
+      "name": "Ruby on Rails",
+      "description": "Full-stack Ruby web framework",
+      "language": "ruby",
+      "packageManager": "bundler",
+      "category": "fullstack",
+      "command": "rails new {name} --skip-git",
+      "defaultPort": 3000,
+      "tags": ["ruby", "mvc", "convention"]
+    },
+    {
+      "id": "phoenix",
+      "name": "Phoenix",
+      "description": "Productive web framework for Elixir",
+      "language": "elixir",
+      "packageManager": "mix",
+      "category": "fullstack",
+      "command": "mix phx.new {name} --no-install",
+      "defaultPort": 4000,
+      "tags": ["elixir", "realtime", "channels"]
+    },
+    {
+      "id": "next-pnpm",
+      "name": "Next.js (pnpm)",
+      "description": "Full-stack React with pnpm",
+      "language": "typescript",
+      "packageManager": "pnpm",
+      "category": "fullstack",
+      "command": "pnpm create next-app@latest {name} --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-turbopack",
+      "defaultPort": 3000,
+      "tags": ["react", "ssr", "typescript", "pnpm"]
+    },
+    {
+      "id": "next-bun",
+      "name": "Next.js (Bun)",
+      "description": "Full-stack React with Bun runtime",
+      "language": "typescript",
+      "packageManager": "bun",
+      "category": "fullstack",
+      "command": "bun create next-app@latest {name} --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-turbopack",
+      "defaultPort": 3000,
+      "tags": ["react", "ssr", "typescript", "bun"]
+    },
+    {
+      "id": "t3-app",
+      "name": "T3 Stack",
+      "description": "Full-stack, typesafe Next.js apps",
+      "language": "typescript",
+      "packageManager": "npm",
+      "category": "fullstack",
+      "command": "npx create-t3-app@latest {name} --CI --tailwind --trpc --prisma --nextAuth --appRouter",
+      "defaultPort": 3000,
+      "tags": ["nextjs", "trpc", "prisma", "typescript", "fullstack"]
+    }
+  ]
+}

@@ -1,29 +1,13 @@
-export type Stack =
-  | "react"
-  | "next"
-  | "vue"
-  | "angular"
-  | "svelte"
-  | "node"
-  | "express"
-  | "nestjs"
-  | "laravel"
-  | "php"
-  | "django"
-  | "flask"
-  | "rails"
-  | "go"
-  | "rust"
-  | "other"
+/**
+ * Project types
+ * Primitive types (Stack, ServiceType, ProjectStatus, ProjectCategory)
+ * are imported from @/lib/constants to avoid duplication.
+ */
 
-export type ProjectStatus = "running" | "stopped" | "error"
-
-export type ServiceType = "frontend" | "backend"
-
-export type ProjectCategory = "frontend" | "backend" | "fullstack"
+export type { Stack, ServiceType, ProjectStatus, ProjectCategory } from "@/lib/constants"
 
 // ============================================================================
-// New types for advanced service detection
+// Detection types (mirrors Rust models/detected_service.rs)
 // ============================================================================
 
 export type Framework =
@@ -167,6 +151,10 @@ export type MonorepoTool =
   | "cargoWorkspace"
   | "none"
 
+// ============================================================================
+// Detected project/service shapes (returned from Rust scanner)
+// ============================================================================
+
 export interface DetectedService {
   name: string
   path: string
@@ -197,15 +185,19 @@ export interface DetectedProject {
   workspaces: string[]
 }
 
+// ============================================================================
+// Core domain models
+// ============================================================================
+
 export interface ProjectService {
   id: string
   name: string
-  type: ServiceType
-  stack: Stack
+  type: import("@/lib/constants").ServiceType
+  stack: import("@/lib/constants").Stack
   path: string
   url: string
   port: number
-  status: ProjectStatus
+  status: import("@/lib/constants").ProjectStatus
   command: string
 }
 
@@ -213,7 +205,7 @@ export interface Project {
   id: string
   name: string
   folder: string
-  category: ProjectCategory
+  category: import("@/lib/constants").ProjectCategory
   services: ProjectService[]
   hasDocker: boolean
   dockerComposeFile?: string
@@ -224,6 +216,10 @@ export interface Project {
   createdAt: Date
   updatedAt: Date
 }
+
+// ============================================================================
+// Form data types
+// ============================================================================
 
 export interface ProjectFormData {
   name: string
