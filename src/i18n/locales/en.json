@@ -26,13 +26,15 @@
     "start": "Start",
     "stop": "Stop",
     "tryAgain": "Please try again",
-    "selectFolder": "Select folder"
+    "selectFolder": "Select folder",
+    "saving": "Saving..."
   },
   "nav": {
     "dashboard": "Dashboard",
     "monitor": "Monitor",
     "settings": "Settings",
     "projects": "Projects",
+    "project": "Project",
     "menuTitle": "Navigation Menu"
   },
   "sidebar": {
@@ -50,7 +52,7 @@
       "last24h": "Last 24 hours",
       "comparedToYesterday": "{{value}}% compared to yesterday",
       "activeUrls": "Active URLs",
-      "testDomains": ".test domains"
+      "urls": "{{urlSuffix}} domains"
     }
   },
   "monitor": {
@@ -138,7 +140,37 @@
       "running": "Running",
       "stopped": "Stopped",
       "error": "Error"
-    }
+    },
+    "editService": "Edit Service",
+    "saveChanges": "Save Changes",
+    "cancelChanges": "Cancel"
+  },
+  "projectDetail": {
+    "title": "Project Details",
+    "projectInfo": "Project Information",
+    "servicesList": "Services",
+    "editService": "Edit Service",
+    "viewDetails": "View Details",
+    "noServices": "No services configured"
+  },
+  "scaffold": {
+    "title": "Scaffold Project",
+    "selectPackageManager": "Select Package Manager",
+    "selectPackageManagerDescription": "Choose the package manager for your new project",
+    "selectTemplate": "Select Template",
+    "selectTemplateDescription": "Choose a framework or template to scaffold",
+    "configureProject": "Configure Project",
+    "configureProjectDescription": "Set up your project details",
+    "creatingProject": "Creating Project",
+    "pleaseWait": "Please wait while we set up your project...",
+    "successTitle": "Project Created!",
+    "successDescription": "Your project has been scaffolded successfully",
+    "projectName": "Project Name",
+    "projectFolder": "Project Folder",
+    "projectUrl": "Project URL",
+    "projectPort": "Port",
+    "commandPreview": "Command Preview",
+    "createProject": "Create Project"
   },
   "settings": {
     "title": "Settings",
@@ -156,7 +188,9 @@
       "title": "IDE",
       "description": "Choose your default code editor.",
       "defaultIde": "Default IDE",
-      "openIn": "Open in {{ide}}"
+      "openIn": "Open in {{ide}}",
+      "executionCommand": "Execution Command",
+      "commandHint": "Default: {{default}}. Override if you use a custom installation (e.g., Flatpak)."
     },
     "workspace": {
       "title": "Workspace",
@@ -221,7 +255,12 @@
   "ide": {
     "saveSuccess": "Default IDE saved",
     "saveSuccessDescription": "{{ide}} is now your default editor",
-    "saveError": "Failed to save IDE"
+    "commandSaveSuccess": "IDE command saved",
+    "commandSaveSuccessDescription": "The IDE command has been updated",
+    "saveError": "Failed to save IDE",
+    "opening": "Opening {{ide}}...",
+    "openSuccess": "{{ide}} opened",
+    "openError": "Failed to open IDE. Check the execution command in Settings."
   },
   "url": {
     "saveSuccess": "Default URL suffix saved",
