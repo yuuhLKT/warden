@@ -23,6 +23,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::settings::save_default_ide,
             commands::settings::get_default_ide,
+            commands::settings::save_ide_command,
+            commands::settings::get_ide_command,
             commands::settings::save_root_path,
             commands::settings::get_root_path,
             commands::settings::save_default_suffix,
@@ -35,13 +37,15 @@ pub fn run() {
             commands::project::get_projects,
             commands::project::get_project,
             commands::project::delete_project,
-            commands::project::scan_workspace_projects,
             commands::project::get_services_by_project,
             commands::project::get_projects_with_services,
             commands::project::project_exists_by_folder,
             commands::project::scan_project_services,
             commands::project::scan_workspace_services,
             commands::project::get_detected_services,
+            commands::project::update_project,
+            commands::project::update_service,
+            commands::scaffold::execute_scaffold,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

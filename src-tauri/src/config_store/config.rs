@@ -5,6 +5,7 @@ use std::path::PathBuf;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Settings {
     pub default_ide: String,
+    pub ide_command: String,
     pub workspace_path: String,
     pub theme: String,
     pub default_suffix: String,
@@ -15,6 +16,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             default_ide: "zed".to_string(),
+            ide_command: "zed".to_string(),
             workspace_path: String::new(),
             theme: "system".to_string(),
             default_suffix: "test".to_string(),
