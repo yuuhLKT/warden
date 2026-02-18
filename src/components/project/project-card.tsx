@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useTranslation } from "@/i18n"
 import { Project } from "@/types/project"
 import { useProjectStore } from "@/stores/project-store"
@@ -6,9 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { ServiceRow } from "./service-row"
+import { ProjectDetailSheet } from "./project-detail-sheet"
 import { StatusIndicator } from "@/components/common/status-indicator"
 import { StackIcon } from "./stack-icon"
-import { Layers, Play, Square, Trash2 } from "lucide-react"
+import { Layers, Play, Square, Trash2, Settings2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface ProjectCardProps {
@@ -18,6 +20,7 @@ interface ProjectCardProps {
 export function ProjectCard({ project }: ProjectCardProps) {
   const { t } = useTranslation()
   const { toggleService, startAllServices, stopAllServices, removeProject } = useProjectStore()
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
 
   const runningServices = project.services.filter((s) => s.status === "running").length
   const totalServices = project.services.length
@@ -100,6 +103,20 @@ export function ProjectCard({ project }: ProjectCardProps) {
               <Button
                 variant="ghost"
                 size="icon"
+                className="size-8"
+                onClick={() => setIsSheetOpen(true)}
+              >
+                <Settings2 className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t("projectDetail.viewDetails")}</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
                 className="text-destructive hover:bg-destructive/10 hover:text-destructive size-8"
                 onClick={() => removeProject(project.id)}
               >
@@ -120,6 +137,8 @@ export function ProjectCard({ project }: ProjectCardProps) {
           />
         ))}
       </CardContent>
+
+      <ProjectDetailSheet project={project} open={isSheetOpen} onOpenChange={setIsSheetOpen} />
     </Card>
   )
 }

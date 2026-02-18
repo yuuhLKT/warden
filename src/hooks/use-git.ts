@@ -16,9 +16,7 @@ export function useGit() {
           description: t("git.cloneSuccessDescription"),
         })
         return true
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error)
-        console.error("Git clone error:", errorMessage)
+      } catch {
         toast.error(t("git.cloneError"), {
           description: t("git.cloneErrorDescription"),
         })

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTranslation } from "@/i18n"
 import { useSettingsStore } from "@/stores/settings-store"
 import { useFolderPicker } from "@/hooks/use-folder-picker"
@@ -11,19 +11,24 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { IDE_CONFIGS, type IDE, type Theme } from "@/types/settings"
-import { Settings, Monitor, FolderOpen, Check, Globe, Layers } from "lucide-react"
+import { Settings, Monitor, FolderOpen, Check, Globe, Layers, Terminal } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function SettingsPage() {
   const { t } = useTranslation()
   const { theme, setTheme } = useSettingsStore()
-  const { defaultIDE, saveIDE } = useIDE()
+  const { defaultIDE, ideCommand, saveIDE, saveIdeCommandOverride } = useIDE()
   const { rootPath, saveRootPath } = useWorkspace()
   const { selectFolder, isLoading } = useFolderPicker()
   const { urlSuffix, saveSuffix } = useUrlSuffix()
   const { scanDepth, saveDepth } = useScanDepth()
   const [suffixInput, setSuffixInput] = useState(urlSuffix)
   const [depthInput, setDepthInput] = useState(scanDepth.toString())
+  const [ideCommandInput, setIdeCommandInput] = useState(ideCommand)
+
+  useEffect(() => {
+    setIdeCommandInput(ideCommand)
+  }, [ideCommand])
 
   const handleThemeChange = (newTheme: Theme) => {
     setTheme(newTheme)
@@ -38,6 +43,10 @@ export function SettingsPage() {
 
   const handleSelectIDE = async (ide: IDE) => {
     await saveIDE(ide)
+  }
+
+  const handleSaveIdeCommand = async () => {
+    await saveIdeCommandOverride(ideCommandInput)
   }
 
   const handleSaveSuffix = async () => {
@@ -105,7 +114,7 @@ export function SettingsPage() {
             </CardTitle>
             <CardDescription>{t("settings.ide.description")}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {(Object.keys(IDE_CONFIGS) as IDE[]).map((ide) => (
                 <button
@@ -120,6 +129,26 @@ export function SettingsPage() {
                   {defaultIDE === ide && <Check className="text-primary size-4" />}
                 </button>
               ))}
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Terminal className="size-4" />
+                {t("settings.ide.executionCommand")}
+              </Label>
+              <div className="flex items-center gap-3">
+                <Input
+                  value={ideCommandInput}
+                  onChange={(e) => setIdeCommandInput(e.target.value)}
+                  placeholder={IDE_CONFIGS[defaultIDE].command}
+                  className="flex-1"
+                />
+                <Button variant="outline" onClick={handleSaveIdeCommand}>
+                  {t("common.save")}
+                </Button>
+              </div>
+              <p className="text-muted-foreground text-xs">
+                {t("settings.ide.commandHint", { default: IDE_CONFIGS[defaultIDE].command })}
+              </p>
             </div>
           </CardContent>
         </Card>

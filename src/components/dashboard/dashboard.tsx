@@ -1,5 +1,6 @@
 import { useTranslation } from "@/i18n"
 import { useProjectStore } from "@/stores/project-store"
+import { useSettingsStore } from "@/stores/settings-store"
 import { ProjectCard } from "@/components/project/project-card"
 import { AddProjectDialog } from "@/components/project/add-project-dialog"
 import { EmptyState } from "@/components/common/empty-state"
@@ -10,6 +11,7 @@ import { FolderKanban, Server, Globe, Plus } from "lucide-react"
 
 export function Dashboard() {
   const { t } = useTranslation()
+  const { urlSuffix } = useSettingsStore()
   const { projects, selectedProjectId, getRunningServicesCount } = useProjectStore()
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId)
@@ -40,7 +42,9 @@ export function Dashboard() {
           <StatsCard
             title={t("dashboard.stats.activeUrls")}
             value={uniqueUrls}
-            description={t("dashboard.stats.testDomains")}
+            description={t("dashboard.stats.urls", {
+              urlSuffix: urlSuffix,
+            })}
             icon={<Globe className="size-4 text-purple-500" />}
           />
         </div>

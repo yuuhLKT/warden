@@ -15,8 +15,7 @@ export function useFolderPicker() {
         title: t("common.selectFolder"),
       })
       return selected as string | null
-    } catch (error) {
-      console.error("Error selecting folder:", error)
+    } catch {
       return null
     } finally {
       setIsLoading(false)

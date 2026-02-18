@@ -1,8 +1,9 @@
+import { useState } from "react"
 import { useTranslation } from "@/i18n"
 import { useSettingsStore } from "@/stores/settings-store"
 import { ideApi } from "@/lib/api"
 import { toast } from "@/lib/toast"
-import { ProjectService } from "@/types/project"
+import type { ProjectService } from "@/types/project"
 import { IDE_CONFIGS } from "@/types/settings"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
@@ -10,7 +11,8 @@ import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { StatusIndicator } from "@/components/common/status-indicator"
 import { StackIcon } from "./stack-icon"
-import { Globe, FolderOpen, Code2 } from "lucide-react"
+import { Globe, FolderOpen, Code2, Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface ServiceRowProps {
   service: ProjectService
@@ -19,18 +21,29 @@ interface ServiceRowProps {
 
 export function ServiceRow({ service, onToggle }: ServiceRowProps) {
   const { t } = useTranslation()
-  const { defaultIDE } = useSettingsStore()
+  const { defaultIDE, ideCommand } = useSettingsStore()
   const isRunning = service.status === "running"
+  const [isOpeningIde, setIsOpeningIde] = useState(false)
 
-  const handleOpenIde = async () => {
-    try {
-      const ideConfig = IDE_CONFIGS[defaultIDE]
-      await ideApi.openInIde(service.path, ideConfig.command)
-    } catch (error) {
-      toast.error("Failed to open IDE", {
-        description: "Make sure the IDE is installed",
-      })
-    }
+  const handleOpenIde = () => {
+    if (isOpeningIde) return
+
+    const command = ideCommand || IDE_CONFIGS[defaultIDE].command
+    const ideName = IDE_CONFIGS[defaultIDE].name
+
+    setIsOpeningIde(true)
+
+    toast.promise(
+      ideApi.openInIde(service.path, command).finally(() => {
+        // Keep the loading state briefly so the animation feels intentional
+        setTimeout(() => setIsOpeningIde(false), 600)
+      }),
+      {
+        loading: t("ide.opening", { ide: ideName }),
+        success: t("ide.openSuccess", { ide: ideName }),
+        error: t("ide.openError"),
+      }
+    )
   }
 
   return (
@@ -71,14 +84,21 @@ export function ServiceRow({ service, onToggle }: ServiceRowProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="size-7 lg:size-8"
+              className={cn("size-7 lg:size-8", isOpeningIde && "text-primary")}
               onClick={handleOpenIde}
+              disabled={isOpeningIde}
             >
-              <Code2 className="size-3.5 lg:size-4" />
+              {isOpeningIde ? (
+                <Loader2 className="size-3.5 animate-spin lg:size-4" />
+              ) : (
+                <Code2 className="size-3.5 lg:size-4" />
+              )}
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            {t("projects.openInIde", { ide: IDE_CONFIGS[defaultIDE].name })}
+            {isOpeningIde
+              ? t("ide.opening", { ide: IDE_CONFIGS[defaultIDE].name })
+              : t("projects.openInIde", { ide: IDE_CONFIGS[defaultIDE].name })}
           </TooltipContent>
         </Tooltip>
 
