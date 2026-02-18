@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/header"
 import { Dashboard } from "@/components/dashboard/dashboard"
 import { MonitorPage } from "@/pages/monitor"
 import { SettingsPage } from "@/pages/settings"
+import { ProjectDetailPage } from "@/pages/project-detail"
 import { useUIStore } from "@/stores/ui-store"
 import { useProjectStore } from "@/stores/project-store"
 
@@ -26,6 +27,7 @@ function AppContent() {
           {currentPage === "dashboard" && <Dashboard />}
           {currentPage === "monitor" && <MonitorPage />}
           {currentPage === "settings" && <SettingsPage />}
+          {currentPage === "project" && <ProjectDetailPage />}
         </main>
       </div>
     </div>

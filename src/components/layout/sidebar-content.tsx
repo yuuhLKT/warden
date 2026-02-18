@@ -33,21 +33,30 @@ interface SidebarContentProps {
 
 export function SidebarContent({ onNavigate, collapsed = false }: SidebarContentProps) {
   const { t } = useTranslation()
-  const { projects, selectedProjectId, selectProject, getRunningServicesCount } = useProjectStore()
-  const { setSidebarOpen, currentPage, navigateTo, sidebarCollapsed, toggleSidebarCollapsed } =
-    useUIStore()
+  const { projects, getRunningServicesCount } = useProjectStore()
+  const {
+    setSidebarOpen,
+    currentPage,
+    navigateTo,
+    navigateToProject,
+    sidebarCollapsed,
+    toggleSidebarCollapsed,
+    selectedProjectId: selectedProjectFromStore,
+  } = useUIStore()
 
   const runningCount = getRunningServicesCount()
 
   const handleSelectProject = (id: string | null) => {
-    selectProject(id)
-    navigateTo("dashboard")
+    if (id) {
+      navigateToProject(id)
+    } else {
+      navigateTo("dashboard")
+    }
     onNavigate?.()
     setSidebarOpen(false)
   }
 
   const handleNavClick = (page: Page) => {
-    selectProject(null)
     navigateTo(page)
     onNavigate?.()
     setSidebarOpen(false)
@@ -137,8 +146,8 @@ export function SidebarContent({ onNavigate, collapsed = false }: SidebarContent
         />
       </div>
 
-      <ScrollArea className="flex-1 px-2">
-        <div className="space-y-1 pb-4">
+      <ScrollArea className="flex-1">
+        <div className="space-y-1 px-3 pb-4">
           {projects.length === 0
             ? !collapsed && (
                 <p className="text-muted-foreground px-2 py-4 text-center text-xs">
@@ -149,7 +158,8 @@ export function SidebarContent({ onNavigate, collapsed = false }: SidebarContent
                 const runningServices = project.services.filter(
                   (s) => s.status === "running"
                 ).length
-                const isSelected = selectedProjectId === project.id && currentPage === "dashboard"
+                const isSelected =
+                  selectedProjectFromStore === project.id && currentPage === "project"
                 const mainStack = getProjectMainStack(project)
 
                 return (
