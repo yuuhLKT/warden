@@ -1,4 +1,4 @@
-use crate::models::service::{CreateServiceRequest, Service};
+use crate::models::service::{CreateServiceRequest, Service, UpdateServiceRequest};
 use rusqlite::{params, Connection, Result};
 
 pub struct ServiceRepository<'a> {
@@ -101,6 +101,40 @@ impl<'a> ServiceRepository<'a> {
         )?;
 
         Ok(rows_affected > 0)
+    }
+
+    pub fn update(&self, id: &str, service: &UpdateServiceRequest) -> Result<Option<Service>> {
+        let existing = self.find_by_id(id)?;
+
+        if existing.is_none() {
+            return Ok(None);
+        }
+
+        let existing = existing.unwrap();
+
+        let name = service.name.as_ref().unwrap_or(&existing.name);
+        let service_type = service
+            .service_type
+            .as_ref()
+            .unwrap_or(&existing.service_type);
+        let stack = service.stack.as_ref().unwrap_or(&existing.stack);
+        let path = service.path.as_ref().unwrap_or(&existing.path);
+        let url = service.url.as_ref().unwrap_or(&existing.url);
+        let port = service.port.unwrap_or(existing.port);
+        let command = service.command.as_ref().unwrap_or(&existing.command);
+
+        let rows_affected = self.conn.execute(
+            "UPDATE services 
+             SET name = ?1, service_type = ?2, stack = ?3, path = ?4, url = ?5, port = ?6, command = ?7, updated_at = CURRENT_TIMESTAMP 
+             WHERE id = ?8",
+            params![name, service_type, stack, path, url, port, command, id],
+        )?;
+
+        if rows_affected > 0 {
+            self.find_by_id(id)
+        } else {
+            Ok(None)
+        }
     }
 
     #[allow(dead_code)]

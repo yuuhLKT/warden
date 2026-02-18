@@ -15,6 +15,20 @@ pub fn get_default_ide() -> Result<String, String> {
 }
 
 #[tauri::command]
+pub fn save_ide_command(command: String) -> Result<(), String> {
+    let mut settings = load_settings();
+    settings.ide_command = command;
+    save_settings(&settings)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_ide_command() -> Result<String, String> {
+    let settings = load_settings();
+    Ok(settings.ide_command)
+}
+
+#[tauri::command]
 pub fn save_root_path(path: String) -> Result<(), String> {
     let mut settings = load_settings();
     settings.workspace_path = path;

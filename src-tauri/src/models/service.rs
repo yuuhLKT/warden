@@ -28,3 +28,14 @@ pub struct CreateServiceRequest {
     pub port: i32,
     pub command: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateServiceRequest {
+    pub name: Option<String>,
+    pub service_type: Option<String>,
+    pub stack: Option<String>,
+    pub path: Option<String>,
+    pub url: Option<String>,
+    pub port: Option<i32>,
+    pub command: Option<String>,
+}

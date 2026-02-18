@@ -4,24 +4,15 @@ use tauri::State;
 
 use crate::database::connection::Database;
 use crate::models::detected_service::{DetectedProject, DetectedService};
-use crate::models::project::{CreateProjectRequest, Project};
-use crate::models::service::{CreateServiceRequest, Service};
+use crate::models::project::{CreateProjectRequest, Project, UpdateProjectRequest};
+use crate::models::service::{CreateServiceRequest, Service, UpdateServiceRequest};
 use crate::repositories::project_repository::ProjectRepository;
 use crate::repositories::service_repository::ServiceRepository;
-use crate::utils::project_scanner::{scan_project_deep, scan_workspace, scan_workspace_deep};
+use crate::utils::project_scanner::{scan_project_deep, scan_workspace_deep};
 use serde::Serialize;
 
 pub struct AppState {
     pub db: Mutex<Database>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DiscoveredProject {
-    pub name: String,
-    pub folder: String,
-    pub stack: String,
-    pub port: u16,
 }
 
 #[derive(Serialize)]
@@ -80,11 +71,9 @@ pub fn create_project(
     let db = state.db.lock().map_err(|e| e.to_string())?;
     let conn = db.get_connection();
 
-    // Criar projeto
     let project_repo = ProjectRepository::new(conn);
     let created_project = project_repo.create(&project).map_err(|e| e.to_string())?;
 
-    // Criar serviços
     if !services.is_empty() {
         let service_repo = ServiceRepository::new(conn);
         for service in services {
@@ -118,32 +107,13 @@ pub fn delete_project(state: State<AppState>, id: String) -> Result<bool, String
     let db = state.db.lock().map_err(|e| e.to_string())?;
     let conn = db.get_connection();
 
-    // Primeiro deleta os serviços
     let service_repo = ServiceRepository::new(conn);
     service_repo
         .delete_by_project_id(&id)
         .map_err(|e| e.to_string())?;
 
-    // Depois deleta o projeto
     let project_repo = ProjectRepository::new(conn);
     project_repo.delete(&id).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub fn scan_workspace_projects(workspace_path: String) -> Result<Vec<DiscoveredProject>, String> {
-    let scanned = scan_workspace(&workspace_path);
-
-    let projects: Vec<DiscoveredProject> = scanned
-        .into_iter()
-        .map(|p| DiscoveredProject {
-            name: p.name,
-            folder: p.path,
-            stack: p.project_type.to_stack().to_string(),
-            port: p.project_type.default_port(),
-        })
-        .collect();
-
-    Ok(projects)
 }
 
 #[tauri::command]
@@ -206,11 +176,6 @@ pub fn project_exists_by_folder(state: State<AppState>, folder: String) -> Resul
         .map_err(|e| e.to_string())
 }
 
-// ============================================================================
-// New advanced scanning commands
-// ============================================================================
-
-/// Scan a single project deeply and detect all services
 #[tauri::command]
 pub fn scan_project_services(path: String, max_depth: u8) -> Result<DetectedProject, String> {
     let path = std::path::Path::new(&path);
@@ -226,7 +191,6 @@ pub fn scan_project_services(path: String, max_depth: u8) -> Result<DetectedProj
     Ok(scan_project_deep(path, max_depth))
 }
 
-/// Scan workspace and return all detected projects with their services
 #[tauri::command]
 pub fn scan_workspace_services(
     workspace_path: String,
@@ -245,7 +209,6 @@ pub fn scan_workspace_services(
     Ok(scan_workspace_deep(&workspace_path, max_depth))
 }
 
-/// Get detected services for a project (for quick scanning)
 #[tauri::command]
 pub fn get_detected_services(path: String) -> Result<Vec<DetectedService>, String> {
     let path = std::path::Path::new(&path);
@@ -256,4 +219,37 @@ pub fn get_detected_services(path: String) -> Result<Vec<DetectedService>, Strin
 
     let project = scan_project_deep(path, 1);
     Ok(project.services)
+}
+
+#[tauri::command]
+pub fn update_project(
+    state: State<AppState>,
+    id: String,
+    project: UpdateProjectRequest,
+) -> Result<Project, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    let conn = db.get_connection();
+
+    let project_repo = ProjectRepository::new(conn);
+    project_repo
+        .update(&id, &project)
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| "Project not found".to_string())
+}
+
+#[tauri::command]
+pub fn update_service(
+    state: State<AppState>,
+    id: String,
+    service: UpdateServiceRequest,
+) -> Result<ServiceResponse, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    let conn = db.get_connection();
+
+    let service_repo = ServiceRepository::new(conn);
+    service_repo
+        .update(&id, &service)
+        .map_err(|e| e.to_string())?
+        .map(ServiceResponse::from)
+        .ok_or_else(|| "Service not found".to_string())
 }
